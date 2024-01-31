@@ -318,7 +318,7 @@ public class Parser {
 
      */
     private void accept(TokenType expectedType) throws SyntaxError {
-        System.out.println(_currentToken.getTokenType());
+        //System.out.println(_currentToken.getTokenType());
         if (_currentToken.getTokenType() == expectedType) {
             _currentToken = _scanner.scan();
             if (_currentToken == null) throw new SyntaxError();
