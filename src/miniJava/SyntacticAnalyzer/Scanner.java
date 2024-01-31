@@ -40,12 +40,13 @@ public class Scanner {
                 return scan();
             } else if (_currentChar == '*') {
                 skipIt();
+                blockCommentLoop:
                 while (true) {
                     switch (_currentChar) {
                         case '*':
                             skipIt();
                             if (_currentChar == '/') return scan();
-                            break;
+                            break blockCommentLoop;
                         case '\uFFFF':
                             _errors.reportError("No end of block comment");
                             return null;
