@@ -36,7 +36,7 @@ public class Scanner {
             skipIt();
             if (_currentChar == '/') {
                 skipIt();
-                while (_currentChar != '\n') skipIt();
+                while (_currentChar != '\n' && _currentChar != '\r') skipIt();
                 return scan();
             } else if (_currentChar == '*') {
                 skipIt();
@@ -45,15 +45,19 @@ public class Scanner {
                     switch (_currentChar) {
                         case '*':
                             skipIt();
-                            if (_currentChar == '/') return scan();
-                            break blockCommentLoop;
+                            if (_currentChar == '/') {
+                                skipIt();
+                                break blockCommentLoop;
+                            }
+                            break;
                         case '\uFFFF':
                             _errors.reportError("No end of block comment");
                             return null;
                         default:
                             skipIt();
                     }
-                } return scan();
+                }
+                return scan();
             } else {
                 _currentText = new StringBuilder("/");
                 return makeToken(TokenType.OP);
@@ -124,24 +128,25 @@ public class Scanner {
                 case '*':
                     takeIt();
                     return makeToken(TokenType.OP);
-				case '|':
-				case '&':
-					takeIt();
-					if (_currentChar != _currentText.charAt(0)) {
-						_errors.reportError("Expected another " + _currentChar);
-						return null;
-					}
-					return makeToken(TokenType.OP);
-				case ';':
+                case '|':
+                case '&':
                     takeIt();
-					return makeToken(TokenType.SEMICOLON);
-				case '.':
+                    if (_currentChar != _currentText.charAt(0)) {
+                        _errors.reportError("Expected another " + _currentChar);
+                        return null;
+                    }
+                    takeIt();
+                    return makeToken(TokenType.OP);
+                case ';':
+                    takeIt();
+                    return makeToken(TokenType.SEMICOLON);
+                case '.':
                     takeIt();
                     return makeToken(TokenType.PERIOD);
-				case '[':
+                case '[':
                     takeIt();
                     return makeToken(TokenType.LBRACKET);
-				case ']':
+                case ']':
                     takeIt();
                     return makeToken(TokenType.RBRACKET);
                 case ',':
@@ -160,7 +165,7 @@ public class Scanner {
                     takeIt();
                     return makeToken(TokenType.RCURLY);
                 default:
-					_errors.reportError("Didn't understand character " + _currentChar + ". Code: " + (int)_currentChar);
+                    _errors.reportError("Didn't understand character " + _currentChar + ". Code: " + (int) _currentChar);
                     return null;
             }
         }
@@ -185,7 +190,8 @@ public class Scanner {
 
 
             // TODO: What happens if c is not a regular ASCII character?
-            if ((c < 32 || c > 126) && c != 10 && c != 13 && c != -1 && c != 9) _errors.reportError("Not printable ASCII char " + c);
+            if ((c < 32 || c > 126) && c != 10 && c != 13 && c != -1 && c != 9)
+                _errors.reportError("Not printable ASCII char " + c);
         } catch (IOException e) {
             // TODO: Report an error here
             _errors.reportError("IO exception, Line: " + _currentLine + " Column: " + _currentCol);
@@ -193,7 +199,7 @@ public class Scanner {
     }
 
     private Token makeToken(TokenType toktype) {
-        //System.out.println(_currentText);
+        System.out.println(_currentText);
         // TODO: return a new Token with the appropriate type and text
         //  contained in
         Token token = new Token(toktype, _currentText.toString());

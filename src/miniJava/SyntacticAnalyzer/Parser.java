@@ -2,9 +2,6 @@ package miniJava.SyntacticAnalyzer;
 
 import miniJava.ErrorReporter;
 
-import java.util.LinkedList;
-import java.util.Queue;
-
 public class Parser {
     private final Scanner _scanner;
     private final ErrorReporter _errors;
@@ -50,18 +47,23 @@ public class Parser {
             if (_currentToken.getTokenType() == TokenType.ACCESS) accept(TokenType.ACCESS);
             if (_currentToken.getTokenType() == TokenType.VOID) {
                 accept(TokenType.VOID);
-            } else parseType();
-            accept(TokenType.ID);
-            switch (_currentToken.getTokenType()) {
-                case SEMICOLON:
-                    parseFieldDeclaration();
-                    break;
-                case LPAREN:
-                    parseMethodDeclaration();
-                    break;
-                default:
-                    _errors.reportError("Not a field or method declaration");
-                    throw new SyntaxError();
+                accept(TokenType.ID);
+                parseMethodDeclaration();
+            } else {
+                parseType();
+                accept(TokenType.ID);
+                switch (_currentToken.getTokenType()) {
+                    case SEMICOLON:
+                        parseFieldDeclaration();
+                        break;
+                    case LPAREN:
+                        parseMethodDeclaration();
+                        break;
+                    default:
+                        _errors.reportError("Not a field or method declaration");
+                        throw new SyntaxError();
+                }
+
             }
         }
         // TODO: Take in a }
@@ -71,6 +73,7 @@ public class Parser {
     private void parseFieldDeclaration() throws SyntaxError {
         accept(TokenType.SEMICOLON);
     }
+
     private void parseMethodDeclaration() throws SyntaxError {
         accept(TokenType.LPAREN);
         while (_currentToken.getTokenType() != TokenType.RPAREN) {
@@ -89,6 +92,7 @@ public class Parser {
         }
         accept(TokenType.RCURLY);
     }
+
     private void parseType() throws SyntaxError {
         switch (_currentToken.getTokenType()) {
             case ID:
@@ -163,7 +167,14 @@ public class Parser {
                 switch (_currentToken.getTokenType()) {
                     case LBRACKET:
                         accept(TokenType.LBRACKET);
-                        accept(TokenType.RBRACKET);
+                        if (_currentToken.getTokenType() != TokenType.RBRACKET) {
+                            parseExpression();
+                            accept(TokenType.RBRACKET);
+                            accept(TokenType.ASSIGNEQUALS);
+                            parseExpression();
+                            accept(TokenType.SEMICOLON);
+                            return;
+                        } else accept(TokenType.RBRACKET);
                     case ID:
                         accept(TokenType.ID);
                         accept(TokenType.ASSIGNEQUALS);
@@ -171,8 +182,8 @@ public class Parser {
                         accept(TokenType.SEMICOLON);
                         return;
                     case PERIOD:
-                        while (_currentToken.getTokenType() == TokenType.COMMA) {
-                            accept(TokenType.COMMA);
+                        while (_currentToken.getTokenType() == TokenType.PERIOD) {
+                            accept(TokenType.PERIOD);
                             accept(TokenType.ID);
                         }
                     default:
@@ -217,6 +228,7 @@ public class Parser {
         switch (_currentToken.getTokenType()) {
             case OP:
                 if (_currentToken.getTokenText().equals("!") || _currentToken.getTokenText().equals("-")) {
+                    accept(TokenType.OP);
                     parseExpression();
                     break;
                 }
@@ -231,6 +243,7 @@ public class Parser {
                 accept(TokenType.NEW);
                 switch (_currentToken.getTokenType()) {
                     case ID:
+                        accept(TokenType.ID);
                         if (_currentToken.getTokenType() == TokenType.LPAREN) {
 
                             accept(TokenType.LPAREN);
@@ -301,11 +314,11 @@ public class Parser {
     //  Can be useful if you want to error check and accept all-in-one.
 
     /* if the queue is not empty, I want to accept the tokens from the queue first and then
-    * and then start checking the _currentToken field for accepting tokens.
+     * and then start checking the _currentToken field for accepting tokens.
 
-    */
+     */
     private void accept(TokenType expectedType) throws SyntaxError {
-        //System.out.println(_currentToken.getTokenType());
+        System.out.println(_currentToken.getTokenType());
         if (_currentToken.getTokenType() == expectedType) {
             _currentToken = _scanner.scan();
             if (_currentToken == null) throw new SyntaxError();
