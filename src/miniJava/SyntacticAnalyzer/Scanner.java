@@ -191,7 +191,7 @@ public class Scanner {
     }
 
     private Token makeToken(TokenType toktype) {
-        System.out.println(_currentText);
+        //System.out.println(_currentText);
         // TODO: return a new Token with the appropriate type and text
         //  contained in
         Token token = new Token(toktype, _currentText.toString());
