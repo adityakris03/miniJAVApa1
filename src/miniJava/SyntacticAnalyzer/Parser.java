@@ -4,7 +4,6 @@ import miniJava.AbstractSyntaxTrees.Package;
 import miniJava.AbstractSyntaxTrees.*;
 import miniJava.ErrorReporter;
 
-import java.lang.reflect.Type;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
@@ -118,7 +117,6 @@ public class Parser {
         StatementList sl = new StatementList();
         while (_currentToken.getTokenType() != TokenType.RCURLY) {
             sl.add(parseStatement());
-            System.out.println("added sl");
         }
         accept(TokenType.RCURLY);
         return new MethodDecl(md, pdl, sl, md.posn);
