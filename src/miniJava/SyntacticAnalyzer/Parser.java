@@ -5,10 +5,13 @@ import miniJava.AbstractSyntaxTrees.*;
 import miniJava.ErrorReporter;
 
 import java.util.Objects;
+import java.util.function.Consumer;
+import java.util.function.Supplier;
 
 public class Parser {
     private final Scanner _scanner;
     private final ErrorReporter _errors;
+    private static final String[] BINOPS = {"||", "&&", "== !=", "<= < > >=", "+ -", "* /", "- !"};
     private Token _currentToken;
 
     public Parser(Scanner scanner, ErrorReporter errors) {
@@ -264,19 +267,46 @@ public class Parser {
         }
     }
 
-    private Expression parseExpression() throws SyntaxError {
+    private Expression parseExpression() {
+        return parseDisjunction();
+    }
+
+    private Expression parseDisjunction() {
+        return binopExpr(BINOPS[0], this::parseConjunction);
+    }
+
+    private Expression parseConjunction() {
+        return binopExpr(BINOPS[1], this::parseEquality);
+    }
+
+    private Expression parseEquality() {
+        return binopExpr(BINOPS[2], this::parseRelational);
+    }
+
+    private Expression parseRelational() {
+        return binopExpr(BINOPS[3], this::parseAdditive);
+    }
+
+    private Expression parseAdditive() {
+        return binopExpr(BINOPS[4], this::parseMultiplicative);
+    }
+
+    private Expression parseMultiplicative() {
+        return binopExpr(BINOPS[5], this::parseUnary);
+    }
+
+    private Expression parseUnary() {
+        if (BINOPS[6].contains(_currentToken.getTokenText())) {
+            Operator o = new Operator(_currentToken);
+            accept(TokenType.OP);
+            return new UnaryExpr(o, parseUnary(), null);
+        }
+        return parseExpressionNormal();
+    }
+
+    private Expression parseExpressionNormal() throws SyntaxError {
         Expression e;
         switch (_currentToken.getTokenType()) {
-            case OP:
-                if (_currentToken.getTokenText().equals("!") || _currentToken.getTokenText().equals("-")) {
-                    Operator o = new Operator(_currentToken);
-                    accept(TokenType.OP);
-                    Expression op_e = parseExpression();
-                    e = new UnaryExpr(o, op_e, null);
-                    break;
-                }
-                _errors.reportError("Illegal operator");
-                throw new SyntaxError();
             case NUM:
             case TRUE:
             case FALSE:
@@ -347,14 +377,21 @@ public class Parser {
                 _errors.reportError("Invalid Expression");
                 throw new SyntaxError();
         }
-        while (_currentToken.getTokenType() == TokenType.OP && !_currentToken.getTokenText().equals("!")) {
-            Operator o = new Operator(_currentToken);
-            accept(TokenType.OP);
-            Expression bin_e = parseExpression();
-            e = new BinaryExpr(o, e, bin_e, null);
-        }
         return e;
     }
+
+    private final Supplier<Expression> normal = this::parseExpressionNormal;
+
+    private Expression binopExpr(String OP, Supplier<Expression> func) {
+        Expression e = func.get();
+            while (_currentToken.getTokenType() == TokenType.OP && OP.contains(_currentToken.getTokenText())) {
+                Operator o = new Operator(_currentToken);
+                accept(TokenType.OP);
+                Expression bin_e = func.get();
+                e = new BinaryExpr(o, e, bin_e, null);
+            }
+            return e;
+        }
 
     private ExprList parseArgumentList() throws SyntaxError {
         ExprList el = new ExprList();
