@@ -354,13 +354,14 @@ public class Parser {
             case ID:
             case THIS:
                 Reference r = _currentToken.getTokenType() == TokenType.ID ? new IdRef(new Identifier(_currentToken), null) : new ThisRef(null);
-                e = new RefExpr(r, null);
+
                 accept(_currentToken.getTokenType());
                 while (_currentToken.getTokenType() == TokenType.PERIOD) {
                     accept(TokenType.PERIOD);
                     r = new QualRef(r, new Identifier(_currentToken), null);
                     accept(TokenType.ID);
                 }
+                e = new RefExpr(r, null);
                 switch (_currentToken.getTokenType()) {
                     case LBRACKET:
                         accept(TokenType.LBRACKET);
