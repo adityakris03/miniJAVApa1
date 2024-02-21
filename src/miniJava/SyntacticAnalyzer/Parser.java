@@ -1,6 +1,10 @@
 package miniJava.SyntacticAnalyzer;
 
+import miniJava.AbstractSyntaxTrees.Package;
+import miniJava.AbstractSyntaxTrees.*;
 import miniJava.ErrorReporter;
+
+import java.util.Objects;
 
 public class Parser {
     private final Scanner _scanner;
@@ -13,51 +17,65 @@ public class Parser {
         this._currentToken = this._scanner.scan();
     }
 
-    public void parse() {
+    public Package parse() {
         try {
             // The first thing we need to parse is the Program symbol
             if (_currentToken == null) throw new SyntaxError();
-            parseProgram();
+            return new Package(parseProgram(), null);
         } catch (SyntaxError e) {
-
+            return null;
         }
     }
 
     // Program ::= (ClassDeclaration)* eot
-    private void parseProgram() throws SyntaxError {
+    private ClassDeclList parseProgram() throws SyntaxError {
         // TODO: Keep parsing class declarations until eot
+        ClassDeclList cdl = new ClassDeclList();
         while (_currentToken.getTokenType() == TokenType.CLASS) {
-            parseClassDeclaration();
+            cdl.add(parseClassDeclaration());
         }
         accept(TokenType.EOT);
+        return cdl;
     }
 
     // ClassDeclaration ::= class identifier { (FieldDeclaration|MethodDeclaration)* }
-    private void parseClassDeclaration() throws SyntaxError {
+    private ClassDecl parseClassDeclaration() throws SyntaxError {
         // TODO: Take in a "class" token (check by the TokenType)
         //  What should be done if the first token isn't "class"?
         accept(TokenType.CLASS);
         // TODO: Take in an identifier token
+        String cn = _currentToken.getTokenText();
         accept(TokenType.ID);
         // TODO: Take in a {
         accept(TokenType.LCURLY);
         // TODO: Parse either a FieldDeclaration or MethodDeclaration
+        MethodDeclList mdl = new MethodDeclList();
+        FieldDeclList fdl = new FieldDeclList();
         while (_currentToken.getTokenType() != TokenType.RCURLY) {
+            boolean isPrivate = Objects.equals(_currentToken.getTokenText(), "private");
             if (_currentToken.getTokenType() == TokenType.VISIBILITY) accept(TokenType.VISIBILITY);
-            if (_currentToken.getTokenType() == TokenType.ACCESS) accept(TokenType.ACCESS);
+            boolean isStatic = false;
+            if (_currentToken.getTokenType() == TokenType.ACCESS) {
+                accept(TokenType.ACCESS);
+                isStatic = true;
+            }
+            TypeDenoter t;
             if (_currentToken.getTokenType() == TokenType.VOID) {
+                t = new BaseType(TypeKind.VOID, null);
                 accept(TokenType.VOID);
+                String name = _currentToken.getTokenText();
                 accept(TokenType.ID);
-                parseMethodDeclaration();
+                mdl.add(parseMethodDeclaration(new FieldDecl(isPrivate, isStatic, t, name, null)));
             } else {
-                parseType();
+                t = parseType();
+                String name = _currentToken.getTokenText();
                 accept(TokenType.ID);
                 switch (_currentToken.getTokenType()) {
                     case SEMICOLON:
-                        parseFieldDeclaration();
+                        fdl.add(parseFieldDeclaration(new FieldDecl(isPrivate, isStatic, t, name, null)));
                         break;
                     case LPAREN:
-                        parseMethodDeclaration();
+                        mdl.add(parseMethodDeclaration(new FieldDecl(isPrivate, isStatic, t, name, null)));
                         break;
                     default:
                         _errors.reportError("Not a field or method declaration");
@@ -68,15 +86,19 @@ public class Parser {
         }
         // TODO: Take in a }
         accept(TokenType.RCURLY);
+        return new ClassDecl(cn, fdl, mdl, null);
     }
 
-    private void parseFieldDeclaration() throws SyntaxError {
+    private FieldDecl parseFieldDeclaration(MemberDecl md) throws SyntaxError {
         accept(TokenType.SEMICOLON);
+        return new FieldDecl(md, md.posn);
     }
 
-    private void parseMethodDeclaration() throws SyntaxError {
+    private MethodDecl parseMethodDeclaration(MemberDecl md) throws SyntaxError {
         accept(TokenType.LPAREN);
+        ParameterDeclList pdl = new ParameterDeclList();
         while (_currentToken.getTokenType() != TokenType.RPAREN) {
+
             parseType();
             accept(TokenType.ID);
             while (_currentToken.getTokenType() == TokenType.COMMA) {
@@ -87,108 +109,126 @@ public class Parser {
         }
         accept(TokenType.RPAREN);
         accept(TokenType.LCURLY);
+        StatementList sl = new StatementList();
         while (_currentToken.getTokenType() != TokenType.RCURLY) {
-            parseStatement();
+            sl.add(parseStatement());
         }
         accept(TokenType.RCURLY);
+        return new MethodDecl(md, pdl, sl, md.posn);
     }
 
-    private void parseType() throws SyntaxError {
+    private TypeDenoter parseType() throws SyntaxError {
         switch (_currentToken.getTokenType()) {
             case ID:
             case INT:
+                Token token = _currentToken;
                 accept(_currentToken.getTokenType());
+                TypeDenoter td = token.getTokenType() == TokenType.INT ? new BaseType(TypeKind.INT, null) : new ClassType(new Identifier(token), null);
                 if (_currentToken.getTokenType() == TokenType.LBRACKET) {
                     accept(TokenType.LBRACKET);
                     accept(TokenType.RBRACKET);
+                    return new ArrayType(td, null);
                 }
-                return;
+                return td;
             case BOOLEAN:
                 accept(TokenType.BOOLEAN);
-                return;
+                return new BaseType(TypeKind.BOOLEAN, null);
             default:
                 _errors.reportError("Invalid Type " + _currentToken.getTokenType());
                 throw new SyntaxError();
         }
     }
 
-    private void parseStatement() throws SyntaxError {
+    private Statement parseStatement() throws SyntaxError {
         switch (_currentToken.getTokenType()) {
             case LCURLY:
                 accept(TokenType.LCURLY);
+                StatementList sl = new StatementList();
                 while (_currentToken.getTokenType() != TokenType.RCURLY) {
-                    parseStatement();
+                    sl.add(parseStatement());
                 }
                 accept(TokenType.RCURLY);
-                return;
+                return new BlockStmt(sl, null);
             case RETURN:
                 accept(TokenType.RETURN);
+                Expression return_e = null;
                 if (_currentToken.getTokenType() != TokenType.SEMICOLON) {
-                    parseExpression();
+                    return_e = parseExpression();
                 }
                 accept(TokenType.SEMICOLON);
-                return;
+                return new ReturnStmt(return_e, null);
             case IF:
                 accept(TokenType.IF);
                 accept(TokenType.LPAREN);
-                parseExpression();
+                Expression if_b = parseExpression();
                 accept(TokenType.RPAREN);
-                parseStatement();
+                Statement if_s = parseStatement();
                 if (_currentToken.getTokenType() == TokenType.ELSE) {
                     accept(TokenType.ELSE);
-                    parseStatement();
+                    Statement el = parseStatement();
+                    return new IfStmt(if_b, if_s, el, null);
                 }
-                return;
+                return new IfStmt(if_b, if_s, null);
             case WHILE:
                 accept(TokenType.WHILE);
                 accept(TokenType.LPAREN);
-                parseExpression();
+                Expression while_e = parseExpression();
                 accept(TokenType.RPAREN);
-                parseStatement();
-                return;
+                Statement while_s = parseStatement();
+                return new WhileStmt(while_e, while_s, null);
             case THIS:
+                Reference thisref = new ThisRef(null);
                 accept(TokenType.THIS);
                 while (_currentToken.getTokenType() == TokenType.PERIOD) {
                     accept(TokenType.PERIOD);
+                    thisref = new QualRef(thisref, new Identifier(_currentToken), null);
                     accept(TokenType.ID);
                 }
-                parseStatementReference();
-                return;
+                return parseStatementReference(thisref);
             case INT:
             case BOOLEAN:
-                parseType();
+                TypeDenoter t = parseType();
+                String varDecl_name = _currentToken.getTokenText();
                 accept(TokenType.ID);
+                VarDecl vd = new VarDecl(t, varDecl_name, null);
                 accept(TokenType.ASSIGNEQUALS);
-                parseExpression();
+                Expression varDecl_e = parseExpression();
                 accept(TokenType.SEMICOLON);
-                return;
+                return new VarDeclStmt(vd, varDecl_e, null);
             case ID:
+                TypeDenoter id_t = new ClassType(new Identifier(_currentToken), null);
+                Reference id = new IdRef(new Identifier(_currentToken), null);
                 accept(TokenType.ID);
                 switch (_currentToken.getTokenType()) {
                     case LBRACKET:
                         accept(TokenType.LBRACKET);
                         if (_currentToken.getTokenType() != TokenType.RBRACKET) {
-                            parseExpression();
+                            Expression i = parseExpression();
                             accept(TokenType.RBRACKET);
                             accept(TokenType.ASSIGNEQUALS);
-                            parseExpression();
+                            Expression e = parseExpression();
                             accept(TokenType.SEMICOLON);
-                            return;
-                        } else accept(TokenType.RBRACKET);
+                            return new IxAssignStmt(id, i, e, null);
+                        } else {
+                            accept(TokenType.RBRACKET);
+                            id_t = new ArrayType(id_t, null);
+                        }
                     case ID:
+                        String name = _currentToken.getTokenText();
                         accept(TokenType.ID);
                         accept(TokenType.ASSIGNEQUALS);
-                        parseExpression();
+                        Expression id_e = parseExpression();
                         accept(TokenType.SEMICOLON);
-                        return;
+                        VarDecl id_vd = new VarDecl(id_t, name, null);
+                        return new VarDeclStmt(id_vd, id_e, null);
                     case PERIOD:
                         while (_currentToken.getTokenType() == TokenType.PERIOD) {
                             accept(TokenType.PERIOD);
+                            id = new QualRef(id, new Identifier(_currentToken), null);
                             accept(TokenType.ID);
                         }
                     default:
-                        parseStatementReference();
-                        return;
+                        return parseStatementReference(id);
                 }
 
             default:
@@ -197,39 +237,42 @@ public class Parser {
         }
     }
 
-    private void parseStatementReference() throws SyntaxError {
+    private StatementReference parseStatementReference(Reference r) throws SyntaxError {
         switch (_currentToken.getTokenType()) {
             case ASSIGNEQUALS:
                 accept(TokenType.ASSIGNEQUALS);
-                parseExpression();
+                Expression assign_e = parseExpression();
                 accept(TokenType.SEMICOLON);
-                return;
+                return new AssignStmt(r, assign_e, null);
             case LBRACKET:
                 accept(TokenType.LBRACKET);
-                parseExpression();
+                Expression i = parseExpression();
                 accept(TokenType.RBRACKET);
                 accept(TokenType.ASSIGNEQUALS);
-                parseExpression();
+                Expression e = parseExpression();
                 accept(TokenType.SEMICOLON);
-                return;
+                return new IxAssignStmt(r, i, e, null);
             case LPAREN:
                 accept(TokenType.LPAREN);
-                parseArgumentList();
+                ExprList el = parseArgumentList();
                 accept(TokenType.RPAREN);
                 accept(TokenType.SEMICOLON);
-                return;
+                return new CallStmt(r, el, null);
             default:
                 _errors.reportError("Invalid Statement with Reference");
                 throw new SyntaxError();
         }
     }
 
-    private void parseExpression() throws SyntaxError {
+    private Expression parseExpression() throws SyntaxError {
+        Expression e;
         switch (_currentToken.getTokenType()) {
             case OP:
                 if (_currentToken.getTokenText().equals("!") || _currentToken.getTokenText().equals("-")) {
+                    Operator o = new Operator(_currentToken);
                     accept(TokenType.OP);
-                    parseExpression();
+                    Expression op_e = parseExpression();
+                    e = new UnaryExpr(o, op_e, null);
                     break;
                 }
                 _errors.reportError("Illegal operator");
@@ -237,28 +280,34 @@ public class Parser {
             case NUM:
             case TRUE:
             case FALSE:
+                Terminal t = _currentToken.getTokenType() == TokenType.NUM ? new IntLiteral(_currentToken) : new BooleanLiteral(_currentToken);
+                e = new LiteralExpr(t, null);
                 accept(_currentToken.getTokenType());
                 break;
             case NEW:
                 accept(TokenType.NEW);
                 switch (_currentToken.getTokenType()) {
                     case ID:
+                        Identifier i = new Identifier(_currentToken);
                         accept(TokenType.ID);
                         if (_currentToken.getTokenType() == TokenType.LPAREN) {
-
+                            ClassType ct = new ClassType(i, null);
                             accept(TokenType.LPAREN);
                             accept(TokenType.RPAREN);
+                            e = new NewObjectExpr(ct, null);
                         } else {
                             accept(TokenType.LBRACKET);
-                            parseExpression();
+                            Expression newArr_e = parseExpression();
                             accept(TokenType.RBRACKET);
+                            e = new NewArrayExpr(new ClassType(i, null), newArr_e, null);
                         }
                         break;
                     case INT:
                         accept(TokenType.INT);
                         accept(TokenType.LBRACKET);
-                        parseExpression();
+                        Expression newArr_e = parseExpression();
                         accept(TokenType.RBRACKET);
+                        e = new NewArrayExpr(new BaseType(TypeKind.INT, null), newArr_e, null);
                         break;
                     default:
                         _errors.reportError("Illegal use of new");
@@ -267,26 +316,31 @@ public class Parser {
                 break;
             case LPAREN:
                 accept(TokenType.LPAREN);
-                parseExpression();
+                e = parseExpression();
                 accept(TokenType.RPAREN);
                 break;
             case ID:
             case THIS:
+                Reference r = _currentToken.getTokenType() == TokenType.ID ? new IdRef(new Identifier(_currentToken), null) : new ThisRef(null);
+                e = new RefExpr(r, null);
                 accept(_currentToken.getTokenType());
                 while (_currentToken.getTokenType() == TokenType.PERIOD) {
                     accept(TokenType.PERIOD);
+                    r = new QualRef(r, new Identifier(_currentToken), null);
                     accept(TokenType.ID);
                 }
                 switch (_currentToken.getTokenType()) {
                     case LBRACKET:
                         accept(TokenType.LBRACKET);
-                        parseExpression();
+                        Expression ix_e = parseExpression();
                         accept(TokenType.RBRACKET);
+                        e = new IxExpr(r, ix_e, null);
                         break;
                     case LPAREN:
                         accept(TokenType.LPAREN);
-                        parseArgumentList();
+                        ExprList el = parseArgumentList();
                         accept(TokenType.RPAREN);
+                        e = new CallExpr(r, el, null);
                 }
                 break;
             default:
@@ -294,20 +348,25 @@ public class Parser {
                 throw new SyntaxError();
         }
         while (_currentToken.getTokenType() == TokenType.OP && !_currentToken.getTokenText().equals("!")) {
+            Operator o = new Operator(_currentToken);
             accept(TokenType.OP);
-            parseExpression();
+            Expression bin_e = parseExpression();
+            e = new BinaryExpr(o, e, bin_e, null);
         }
-
+        return e;
     }
 
-    private void parseArgumentList() throws SyntaxError {
+    private ExprList parseArgumentList() throws SyntaxError {
+        ExprList el = new ExprList();
         if (_currentToken.getTokenType() != TokenType.RPAREN) {
-            parseExpression();
+            el.add(parseExpression());
             while (_currentToken.getTokenType() == TokenType.COMMA) {
                 accept(TokenType.COMMA);
-                parseExpression();
+                el.add(parseExpression());
             }
         }
+
+        return el;
     }
 
     // This method will accept the token and retrieve the next token.

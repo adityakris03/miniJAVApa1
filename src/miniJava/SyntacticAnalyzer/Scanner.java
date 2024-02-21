@@ -36,7 +36,7 @@ public class Scanner {
             skipIt();
             if (_currentChar == '/') {
                 skipIt();
-                while (_currentChar != '\n' && _currentChar != '\r') skipIt();
+                while (_currentChar != '\n' && _currentChar != '\r' && _currentChar != '\uFFFF') skipIt();
                 return scan();
             } else if (_currentChar == '*') {
                 skipIt();

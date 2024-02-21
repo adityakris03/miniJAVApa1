@@ -1,5 +1,7 @@
 package miniJava;
 
+import miniJava.AbstractSyntaxTrees.ASTDisplay;
+import miniJava.AbstractSyntaxTrees.Package;
 import miniJava.SyntacticAnalyzer.Parser;
 import miniJava.SyntacticAnalyzer.Scanner;
 
@@ -22,16 +24,15 @@ public class Compiler {
 // TODO: Instantiate the parser with the scanner and error object
             Parser parser = new Parser(scanner, errors);
             // TODO: Call the parser's parse function
-
-            parser.parse();
-
+            ASTDisplay astDisplay = new ASTDisplay();
+            Package p = parser.parse();
             if (errors.hasErrors()) {
                 // TODO: Check if any errors exist, if so, println("Error")
                 //  then output the errors
                 System.out.println("Error");
                 errors.outputErrors();
-            }        // TODO: If there are no errors, println("Success")
-            else System.out.println("Success");
+            }        // TODO: If there are no errors, show AST
+            else astDisplay.showTree(p);
         } catch (FileNotFoundException e) {
             throw new RuntimeException(e);
         }
