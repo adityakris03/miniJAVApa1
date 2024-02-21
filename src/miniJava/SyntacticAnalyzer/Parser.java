@@ -4,6 +4,7 @@ import miniJava.AbstractSyntaxTrees.Package;
 import miniJava.AbstractSyntaxTrees.*;
 import miniJava.ErrorReporter;
 
+import java.lang.reflect.Type;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
@@ -102,12 +103,13 @@ public class Parser {
         accept(TokenType.LPAREN);
         ParameterDeclList pdl = new ParameterDeclList();
         while (_currentToken.getTokenType() != TokenType.RPAREN) {
-
-            parseType();
+            TypeDenoter t = parseType();
+            pdl.add(new ParameterDecl(t, _currentToken.getTokenText(), null));
             accept(TokenType.ID);
             while (_currentToken.getTokenType() == TokenType.COMMA) {
                 accept(TokenType.COMMA);
-                parseType();
+                t = parseType();
+                pdl.add(new ParameterDecl(t, _currentToken.getTokenText(), null));
                 accept(TokenType.ID);
             }
         }
@@ -116,6 +118,7 @@ public class Parser {
         StatementList sl = new StatementList();
         while (_currentToken.getTokenType() != TokenType.RCURLY) {
             sl.add(parseStatement());
+            System.out.println("added sl");
         }
         accept(TokenType.RCURLY);
         return new MethodDecl(md, pdl, sl, md.posn);
