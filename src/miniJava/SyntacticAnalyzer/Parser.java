@@ -4,14 +4,15 @@ import miniJava.AbstractSyntaxTrees.Package;
 import miniJava.AbstractSyntaxTrees.*;
 import miniJava.ErrorReporter;
 
+import java.util.Arrays;
+import java.util.List;
 import java.util.Objects;
-import java.util.function.Consumer;
 import java.util.function.Supplier;
 
 public class Parser {
+    private static final String[][] BINOPS = {{"||"}, {"&&"}, {"==", "!="}, {"<=", "<", ">", ">="}, {"+", "-"}, {"*", "/"}, {"-", "!"}};
     private final Scanner _scanner;
     private final ErrorReporter _errors;
-    private static final String[] BINOPS = {"||", "&&", "== !=", "<= < > >=", "+ -", "* /", "- !"};
     private Token _currentToken;
 
     public Parser(Scanner scanner, ErrorReporter errors) {
@@ -272,31 +273,31 @@ public class Parser {
     }
 
     private Expression parseDisjunction() {
-        return binopExpr(BINOPS[0], this::parseConjunction);
+        return binopExpr(Arrays.asList(BINOPS[0]), this::parseConjunction);
     }
 
     private Expression parseConjunction() {
-        return binopExpr(BINOPS[1], this::parseEquality);
+        return binopExpr(Arrays.asList(BINOPS[1]), this::parseEquality);
     }
 
     private Expression parseEquality() {
-        return binopExpr(BINOPS[2], this::parseRelational);
+        return binopExpr(Arrays.asList(BINOPS[2]), this::parseRelational);
     }
 
     private Expression parseRelational() {
-        return binopExpr(BINOPS[3], this::parseAdditive);
+        return binopExpr(Arrays.asList(BINOPS[3]), this::parseAdditive);
     }
 
     private Expression parseAdditive() {
-        return binopExpr(BINOPS[4], this::parseMultiplicative);
+        return binopExpr(Arrays.asList(BINOPS[4]), this::parseMultiplicative);
     }
 
     private Expression parseMultiplicative() {
-        return binopExpr(BINOPS[5], this::parseUnary);
+        return binopExpr(Arrays.asList(BINOPS[5]), this::parseUnary);
     }
 
     private Expression parseUnary() {
-        if (BINOPS[6].contains(_currentToken.getTokenText())) {
+        if (Arrays.asList(BINOPS[6]).contains(_currentToken.getTokenText())) {
             Operator o = new Operator(_currentToken);
             accept(TokenType.OP);
             return new UnaryExpr(o, parseUnary(), null);
@@ -380,18 +381,16 @@ public class Parser {
         return e;
     }
 
-    private final Supplier<Expression> normal = this::parseExpressionNormal;
-
-    private Expression binopExpr(String OP, Supplier<Expression> func) {
+    private Expression binopExpr(List<String> OP, Supplier<Expression> func) {
         Expression e = func.get();
-            while (_currentToken.getTokenType() == TokenType.OP && OP.contains(_currentToken.getTokenText())) {
-                Operator o = new Operator(_currentToken);
-                accept(TokenType.OP);
-                Expression bin_e = func.get();
-                e = new BinaryExpr(o, e, bin_e, null);
-            }
-            return e;
+        while (_currentToken.getTokenType() == TokenType.OP && OP.contains(_currentToken.getTokenText())) {
+            Operator o = new Operator(_currentToken);
+            accept(TokenType.OP);
+            Expression bin_e = func.get();
+            e = new BinaryExpr(o, e, bin_e, null);
         }
+        return e;
+    }
 
     private ExprList parseArgumentList() throws SyntaxError {
         ExprList el = new ExprList();

@@ -2,4 +2,4 @@
 .idea
 pa1-tests-partial/
 pa2-tests-partial/
-classes/
+classes/*
