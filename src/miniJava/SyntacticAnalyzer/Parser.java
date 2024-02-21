@@ -426,7 +426,7 @@ public class Parser {
         throw new SyntaxError();
     }
 
-    class SyntaxError extends Error {
+    static class SyntaxError extends Error {
         private static final long serialVersionUID = -6461942006097999362L;
     }
 
