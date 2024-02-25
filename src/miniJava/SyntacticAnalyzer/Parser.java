@@ -307,13 +307,13 @@ public class Parser {
     }
 
     private Expression parseExpressionNormal() throws SyntaxError {
-        Expression e;
+        Expression expr;
         switch (_currentToken.getTokenType()) {
             case NUM:
             case TRUE:
             case FALSE:
                 Terminal t = _currentToken.getTokenType() == TokenType.NUM ? new IntLiteral(_currentToken) : new BooleanLiteral(_currentToken);
-                e = new LiteralExpr(t, null);
+                expr = new LiteralExpr(t, null);
                 accept(_currentToken.getTokenType());
                 break;
             case NEW:
@@ -326,12 +326,12 @@ public class Parser {
                             ClassType ct = new ClassType(i, null);
                             accept(TokenType.LPAREN);
                             accept(TokenType.RPAREN);
-                            e = new NewObjectExpr(ct, null);
+                            expr = new NewObjectExpr(ct, null);
                         } else {
                             accept(TokenType.LBRACKET);
                             Expression newArr_e = parseExpression();
                             accept(TokenType.RBRACKET);
-                            e = new NewArrayExpr(new ClassType(i, null), newArr_e, null);
+                            expr = new NewArrayExpr(new ClassType(i, null), newArr_e, null);
                         }
                         break;
                     case INT:
@@ -339,7 +339,7 @@ public class Parser {
                         accept(TokenType.LBRACKET);
                         Expression newArr_e = parseExpression();
                         accept(TokenType.RBRACKET);
-                        e = new NewArrayExpr(new BaseType(TypeKind.INT, null), newArr_e, null);
+                        expr = new NewArrayExpr(new BaseType(TypeKind.INT, null), newArr_e, null);
                         break;
                     default:
                         _errors.reportError("Illegal use of new");
@@ -348,7 +348,7 @@ public class Parser {
                 break;
             case LPAREN:
                 accept(TokenType.LPAREN);
-                e = parseExpression();
+                expr = parseExpression();
                 accept(TokenType.RPAREN);
                 break;
             case ID:
@@ -361,26 +361,26 @@ public class Parser {
                     r = new QualRef(r, new Identifier(_currentToken), null);
                     accept(TokenType.ID);
                 }
-                e = new RefExpr(r, null);
+                expr = new RefExpr(r, null);
                 switch (_currentToken.getTokenType()) {
                     case LBRACKET:
                         accept(TokenType.LBRACKET);
                         Expression ix_e = parseExpression();
                         accept(TokenType.RBRACKET);
-                        e = new IxExpr(r, ix_e, null);
+                        expr = new IxExpr(r, ix_e, null);
                         break;
                     case LPAREN:
                         accept(TokenType.LPAREN);
                         ExprList el = parseArgumentList();
                         accept(TokenType.RPAREN);
-                        e = new CallExpr(r, el, null);
+                        expr = new CallExpr(r, el, null);
                 }
                 break;
             default:
                 _errors.reportError("Invalid Expression");
                 throw new SyntaxError();
         }
-        return e;
+        return expr;
     }
 
     private Expression binopExpr(List<String> OP, Supplier<Expression> func) {
