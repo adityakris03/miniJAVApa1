@@ -352,6 +352,7 @@ public class Parser {
                 accept(TokenType.RPAREN);
                 break;
             case ID:
+                System.out.println("IDIDID");
             case THIS:
                 Reference r = _currentToken.getTokenType() == TokenType.ID ? new IdRef(new Identifier(_currentToken), null) : new ThisRef(null);
 
