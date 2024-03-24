@@ -31,7 +31,8 @@ public class ScopedIdentification {
 
     public void addDeclaration(Declaration decl) {
         //Iterator<HashMap<String, Declaration>> iter = _table.iterator();
-        if (_table.peek().containsKey(decl.name)) throw new IdentificationError("Variable already declared");
+        for (int i = _table.size() - 1; i >= 2; i--)
+            if (_table.get(i).containsKey(decl.name)) throw new IdentificationError("Variable already declared");
         _table.peek().put(decl.name, decl);
     }
 
