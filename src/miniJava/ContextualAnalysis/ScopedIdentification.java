@@ -25,6 +25,7 @@ public class ScopedIdentification {
     }
 
     public void closeScope() {
+        if (_table.size() >= 2 && _table.peek().size() == 1) throw new IdentificationError("no dec in own scope");
         _table.pop();
     }
 

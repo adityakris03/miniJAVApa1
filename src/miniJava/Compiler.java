@@ -32,14 +32,21 @@ public class Compiler {
             ScopedIdentification si = new ScopedIdentification();
             Identification i = new Identification(si, errors);
             TypeChecking tc = new TypeChecking(errors);
-            i.runIdentification(p);
-            tc.runTypeChecking(p);
             if (errors.hasErrors()) {
                 // TODO: Check if any errors exist, if so, println("Error")
                 //  then output the errors
                 System.out.println("Error");
                 errors.outputErrors();
-            } else System.out.println("Success");
+            } else {
+                i.runIdentification(p);
+                tc.runTypeChecking(p);
+                if (errors.hasErrors()) {
+                    // TODO: Check if any errors exist, if so, println("Error")
+                    //  then output the errors
+                    System.out.println("Error");
+                    errors.outputErrors();
+                } else System.out.println("Success");
+            }
         } catch (FileNotFoundException e) {
             throw new RuntimeException(e);
         }
