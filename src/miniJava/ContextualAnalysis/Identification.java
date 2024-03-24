@@ -85,6 +85,7 @@ public class Identification implements Visitor<Object, Object> {
 
     @Override
     public Object visitClassType(ClassType type, Object arg) {
+        if(!(si.findDeclaration(type.className.spelling) instanceof ClassDecl)) throw new IdentificationError("not class type");
         return null;
     }
 
@@ -228,8 +229,7 @@ public class Identification implements Visitor<Object, Object> {
             return null;
         }
 
-        if (context instanceof ClassDecl) {
-            ClassDecl cd = (ClassDecl) context;
+        if (context instanceof ClassDecl cd) {
             Declaration decl = (Declaration) cd.visit(this, ref.id);
 
             if (decl == null) {
@@ -237,8 +237,7 @@ public class Identification implements Visitor<Object, Object> {
                 return null;
             }
 
-            if (decl instanceof MemberDecl) {
-                MemberDecl md = (MemberDecl) decl;
+            if (decl instanceof MemberDecl md) {
                 if (((MethodDecl) arg).isStatic && !md.isStatic) {
                     _errors.reportError("static reference to non-static variable");
                     return null;
@@ -261,8 +260,7 @@ public class Identification implements Visitor<Object, Object> {
                     return null;
                 }
 
-                if (d instanceof MemberDecl) {
-                    MemberDecl md = (MemberDecl) d;
+                if (d instanceof MemberDecl md) {
                     if (md.isPrivate && cd != ((MethodDecl) arg).insideClass)
                         _errors.reportError("private reference");
                 }

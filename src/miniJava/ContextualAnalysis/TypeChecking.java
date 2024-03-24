@@ -41,6 +41,7 @@ public class TypeChecking implements Visitor<Object, Object> {
 
     @Override
     public Object visitMethodDecl(MethodDecl md, Object arg) {
+        md.parameterDeclList.forEach(pd -> pd.visit(this, null));
         md.statementList.forEach(sl -> sl.visit(this, md));
         return md.type;
     }
