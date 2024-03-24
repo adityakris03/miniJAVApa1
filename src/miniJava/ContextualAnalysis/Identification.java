@@ -292,7 +292,6 @@ public class Identification implements Visitor<Object, Object> {
 
     @Override
     public Object visitIdentifier(Identifier id, Object arg) {
-        if (((MethodDecl) arg).isStatic) _errors.reportError("static method using this keyword");
         return si.findDeclaration(id.spelling);
     }
 
