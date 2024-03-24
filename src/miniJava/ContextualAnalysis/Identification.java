@@ -229,7 +229,8 @@ public class Identification implements Visitor<Object, Object> {
             return null;
         }
 
-        if (context instanceof ClassDecl cd) {
+        if (context instanceof ClassDecl) {
+            ClassDecl cd = (ClassDecl) context;
             Declaration decl = (Declaration) cd.visit(this, ref.id);
 
             if (decl == null) {
@@ -237,7 +238,8 @@ public class Identification implements Visitor<Object, Object> {
                 return null;
             }
 
-            if (decl instanceof MemberDecl md) {
+            if (decl instanceof MemberDecl) {
+                MemberDecl md = (MemberDecl) decl;
                 if (((MethodDecl) arg).isStatic && !md.isStatic) {
                     _errors.reportError("static reference to non-static variable");
                     return null;
@@ -260,7 +262,8 @@ public class Identification implements Visitor<Object, Object> {
                     return null;
                 }
 
-                if (d instanceof MemberDecl md) {
+                if (d instanceof MemberDecl) {
+                    MemberDecl md = (MemberDecl) d;
                     if (md.isPrivate && cd != ((MethodDecl) arg).insideClass)
                         _errors.reportError("private reference");
                 }
