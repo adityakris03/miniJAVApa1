@@ -235,7 +235,6 @@ public class Identification implements Visitor<Object, Object> {
             _errors.reportError("referencing without context");
             return null;
         }
-
         if (context instanceof ClassDecl) {
             ClassDecl cd = (ClassDecl) context;
             Declaration decl = (Declaration) cd.visit(this, ref.id);
@@ -280,6 +279,8 @@ public class Identification implements Visitor<Object, Object> {
             } else {
                 _errors.reportError("incorrect qualref");
             }
+        }else {
+            _errors.reportError("incorrect qualref");
         }
         return null;
     }
