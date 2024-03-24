@@ -27,6 +27,6 @@ public class ClassType extends TypeDenoter {
         if (this == o) return true;
         if (!(o instanceof ClassType)) return false;
         ClassType classType = (ClassType) o;
-        return Objects.equals(className, classType.className);
+        return Objects.equals(className.spelling, classType.className.spelling);
     }
 }
