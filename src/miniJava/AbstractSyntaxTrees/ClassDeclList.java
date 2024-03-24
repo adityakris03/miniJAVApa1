@@ -1,34 +1,36 @@
 /**
  * miniJava Abstract Syntax Tree classes
+ *
  * @author prins
  * @version COMP 520 (v2.2)
  */
 package miniJava.AbstractSyntaxTrees;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
 
-public class ClassDeclList implements Iterable<ClassDecl>
-{
-	public ClassDeclList() {
-		classDeclList = new ArrayList<ClassDecl>();
-	}   
+public class ClassDeclList implements Iterable<ClassDecl> {
+    private final List<ClassDecl> classDeclList;
 
-	public void add(ClassDecl cd){
-		classDeclList.add(cd);
-	}
+    public ClassDeclList() {
+        classDeclList = new ArrayList<ClassDecl>();
+    }
 
-	public ClassDecl get(int i){
-		return classDeclList.get(i);
-	}
+    public void add(ClassDecl cd) {
+        classDeclList.add(cd);
+    }
 
-	public int size() {
-		return classDeclList.size();
-	}
+    public ClassDecl get(int i) {
+        return classDeclList.get(i);
+    }
 
-	public Iterator<ClassDecl> iterator() {
-		return classDeclList.iterator();
-	}
+    public int size() {
+        return classDeclList.size();
+    }
 
-	private List<ClassDecl> classDeclList;
+    public Iterator<ClassDecl> iterator() {
+        return classDeclList.iterator();
+    }
 }
 

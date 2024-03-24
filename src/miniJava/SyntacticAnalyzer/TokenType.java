@@ -42,5 +42,5 @@ public enum TokenType {
     NUM,
     NEW,
     EOT,
-
+    NULL
 }

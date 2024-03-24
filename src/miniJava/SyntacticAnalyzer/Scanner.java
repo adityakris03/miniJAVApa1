@@ -104,6 +104,8 @@ public class Scanner {
                     return makeToken(TokenType.VOID);
                 case "new":
                     return makeToken(TokenType.NEW);
+                case "null":
+                    return makeToken(TokenType.NULL);
                 default:
                     return makeToken(TokenType.ID);
 

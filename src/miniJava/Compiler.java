@@ -2,6 +2,9 @@ package miniJava;
 
 import miniJava.AbstractSyntaxTrees.ASTDisplay;
 import miniJava.AbstractSyntaxTrees.Package;
+import miniJava.ContextualAnalysis.Identification;
+import miniJava.ContextualAnalysis.ScopedIdentification;
+import miniJava.ContextualAnalysis.TypeChecking;
 import miniJava.SyntacticAnalyzer.Parser;
 import miniJava.SyntacticAnalyzer.Scanner;
 
@@ -26,13 +29,17 @@ public class Compiler {
             // TODO: Call the parser's parse function
             ASTDisplay astDisplay = new ASTDisplay();
             Package p = parser.parse();
+            ScopedIdentification si = new ScopedIdentification();
+            Identification i = new Identification(si, errors);
+            TypeChecking tc = new TypeChecking(errors);
+            i.runIdentification(p);
+            tc.runTypeChecking(p);
             if (errors.hasErrors()) {
                 // TODO: Check if any errors exist, if so, println("Error")
                 //  then output the errors
                 System.out.println("Error");
                 errors.outputErrors();
-            }        // TODO: If there are no errors, show AST
-            else astDisplay.showTree(p);
+            } else System.out.println("Success");
         } catch (FileNotFoundException e) {
             throw new RuntimeException(e);
         }

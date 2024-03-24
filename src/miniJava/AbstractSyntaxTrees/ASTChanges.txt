@@ -1,0 +1,5 @@
+Added .equals method for TypeDenoter (ArrayType, BaseType, ClassType)
+Added NullRef class to AST and Visitor model
+Set declaration for ClassType's identifier in Declaration constructor
+Added decl field to Reference and Identifier
+Added insideClass field to methoddecl

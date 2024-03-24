@@ -128,7 +128,10 @@ public class Parser {
             case INT:
                 Token token = _currentToken;
                 accept(_currentToken.getTokenType());
-                TypeDenoter td = token.getTokenType() == TokenType.INT ? new BaseType(TypeKind.INT, null) : new ClassType(new Identifier(token), null);
+                TypeDenoter td;
+                if (token.getTokenType() == TokenType.INT) td = new BaseType(TypeKind.INT, null);
+                else if (token.getTokenText().equals("String")) td = new BaseType(TypeKind.UNSUPPORTED, null);
+                else td = new ClassType(new Identifier(token), null);
                 if (_currentToken.getTokenType() == TokenType.LBRACKET) {
                     accept(TokenType.LBRACKET);
                     accept(TokenType.RBRACKET);
