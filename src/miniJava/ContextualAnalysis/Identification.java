@@ -194,6 +194,7 @@ public class Identification implements Visitor<Object, Object> {
 
     @Override
     public Object visitIxExpr(IxExpr expr, Object arg) {
+        System.out.println(expr.ref.getClass());
         expr.ref.visit(this, arg);
         expr.ixExpr.visit(this, arg);
         return null;

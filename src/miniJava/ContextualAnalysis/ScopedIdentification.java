@@ -15,9 +15,10 @@ public class ScopedIdentification {
     public ScopedIdentification() {
         _table = new Stack<>();
         openScope();
-        addSystem();
-        addPrintStream();
+
         addString();
+        addPrintStream();
+        addSystem();
     }
 
     public void openScope() {

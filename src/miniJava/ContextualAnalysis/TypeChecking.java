@@ -88,6 +88,7 @@ public class TypeChecking implements Visitor<Object, Object> {
     }
 
     private void checkType(TypeDenoter left, TypeDenoter right) {
+        System.out.println(left.typeKind + " " + right.typeKind);
         if (!left.equals(right)) reportError("incorrect type");
     }
 
