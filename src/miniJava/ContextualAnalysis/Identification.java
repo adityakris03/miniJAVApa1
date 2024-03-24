@@ -37,12 +37,23 @@ public class Identification implements Visitor<Object, Object> {
 
     @Override
     public Object visitClassDecl(ClassDecl cd, Object arg) {
+        if (arg != null) return visitClassDeclHelper(cd, (Identifier) arg);
         si.openScope();
         cd.fieldDeclList.forEach(si::addDeclaration);
         cd.fieldDeclList.forEach(fd -> fd.visit(this, cd));
         cd.methodDeclList.forEach(si::addDeclaration);
         cd.methodDeclList.forEach(md -> md.visit(this, cd));
         si.closeScope();
+        return null;
+    }
+
+    private Object visitClassDeclHelper(ClassDecl cd, Identifier arg) {
+        for (MemberDecl md : cd.fieldDeclList)
+            if (md.name.equals(arg.spelling))
+                return md;
+        for (MemberDecl md : cd.methodDeclList)
+            if (md.name.equals(arg.spelling))
+                return md;
         return null;
     }
 
@@ -237,7 +248,7 @@ public class Identification implements Visitor<Object, Object> {
         }
         if (context instanceof ClassDecl) {
             ClassDecl cd = (ClassDecl) context;
-            Declaration decl = (Declaration) cd.visit(this, ref.id);
+            MemberDecl decl = (MemberDecl) cd.visit(this, ref.id);
 
             if (decl == null) {
                 _errors.reportError("failed to find declaration of id in class");
@@ -256,13 +267,12 @@ public class Identification implements Visitor<Object, Object> {
             }
             ref.id.decl = decl;
             ref.decl = ref.id.decl;
-        } else if (context instanceof LocalDecl || context instanceof MethodDecl) {
+        } else if (context instanceof LocalDecl || context instanceof MemberDecl) {
             if (Objects.requireNonNull(context.type.typeKind) == TypeKind.CLASS) {
                 ClassType ct = (ClassType) context.type;
                 ClassDecl cd = (ClassDecl) si.findDeclaration(ct.className.spelling);
-                if (((MethodDecl) arg).isStatic) _errors.reportError("static method using this keyword");
+                //if (((MethodDecl) arg).isStatic) _errors.reportError("static method using this keyword");
                 Declaration d = (Declaration) cd.visit(this, ref.id);
-
                 if (d == null) {
                     _errors.reportError("reference not found in class");
                     return null;
@@ -292,7 +302,7 @@ public class Identification implements Visitor<Object, Object> {
 
     @Override
     public Object visitIdentifier(Identifier id, Object arg) {
-        if (((MethodDecl) arg).isStatic) _errors.reportError("static method using this keyword");
+        //if (((MethodDecl) arg).isStatic) _errors.reportError("static method using this keyword");
         return si.findDeclaration(id.spelling);
     }
 

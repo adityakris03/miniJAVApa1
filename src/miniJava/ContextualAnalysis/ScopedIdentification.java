@@ -58,7 +58,7 @@ public class ScopedIdentification {
         MethodDeclList mdl = new MethodDeclList();
         ParameterDeclList pdl = new ParameterDeclList();
         pdl.add(new ParameterDecl(new BaseType(TypeKind.INT, null), "n", null));
-        mdl.add(new MethodDecl(new FieldDecl(false, false, new BaseType(TypeKind.VOID, null), "out", null), pdl, new StatementList(), null));
+        mdl.add(new MethodDecl(new FieldDecl(false, false, new BaseType(TypeKind.VOID, null), "println", null), pdl, new StatementList(), null));
         addDeclaration(new ClassDecl("_PrintStream", fdl, mdl, null));
     }
 
