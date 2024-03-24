@@ -25,7 +25,8 @@ public class ASTDisplay implements Visitor<String, Object> {
 
     /**
      * print text representation of AST to stdout
-     * @param ast root node of AST 
+     *
+     * @param ast root node of AST
      */
     public void showTree(AST ast) {
         System.out.println("======= AST Display =========================");
@@ -37,8 +38,9 @@ public class ASTDisplay implements Visitor<String, Object> {
 
     /**
      * display arbitrary text for a node
-     * @param prefix  indent text to indicate depth in AST
-     * @param text    preformatted node display
+     *
+     * @param prefix indent text to indicate depth in AST
+     * @param text   preformatted node display
      */
     private void show(String prefix, String text) {
         System.out.println(prefix + text);
@@ -46,8 +48,9 @@ public class ASTDisplay implements Visitor<String, Object> {
 
     /**
      * display AST node by name
-     * @param prefix  spaced indent to indicate depth in AST
-     * @param node    AST node, will be shown by name
+     *
+     * @param prefix spaced indent to indicate depth in AST
+     * @param node   AST node, will be shown by name
      */
     private void show(String prefix, AST node) {
         System.out.println(prefix + node.toString());
@@ -55,7 +58,8 @@ public class ASTDisplay implements Visitor<String, Object> {
 
     /**
      * quote a string
-     * @param text    string to quote
+     *
+     * @param text string to quote
      */
     private String quote(String text) {
         return ("\"" + text + "\"");
@@ -63,7 +67,8 @@ public class ASTDisplay implements Visitor<String, Object> {
 
     /**
      * increase depth in AST
-     * @param prefix  current spacing to indicate depth in AST
+     *
+     * @param prefix current spacing to indicate depth in AST
      * @return new spacing
      */
     private String indent(String prefix) {

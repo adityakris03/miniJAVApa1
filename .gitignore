@@ -2,4 +2,6 @@
 .idea
 pa1-tests-partial/
 pa2-tests-partial/
+pa3_test/
 classes/*
+out/

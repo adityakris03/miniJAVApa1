@@ -19,6 +19,7 @@ public class IfStmt extends Statement {
         thenStmt = t;
         elseStmt = e;
     }
+
     public IfStmt(Expression b, Statement t, SourcePosition posn) {
         super(posn);
         cond = b;

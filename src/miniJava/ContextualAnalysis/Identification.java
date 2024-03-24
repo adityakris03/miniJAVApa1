@@ -4,6 +4,8 @@ import miniJava.AbstractSyntaxTrees.Package;
 import miniJava.AbstractSyntaxTrees.*;
 import miniJava.ErrorReporter;
 
+import java.util.Objects;
+
 public class Identification implements Visitor<Object, Object> {
 
     ScopedIdentification si;
@@ -15,7 +17,11 @@ public class Identification implements Visitor<Object, Object> {
     }
 
     public void runIdentification(Package p) {
-        p.visit(this, null);
+        try {
+            p.visit(this, null);
+        } catch (IdentificationError e) {
+            _errors.reportError(e.getLocalizedMessage());
+        }
     }
 
     @Override
@@ -242,28 +248,26 @@ public class Identification implements Visitor<Object, Object> {
             ref.id.decl = decl;
             ref.decl = ref.id.decl;
         } else if (context instanceof LocalDecl || context instanceof MethodDecl) {
-            switch (context.type.typeKind) {
-                case CLASS:
-                    ClassType ct = (ClassType) context.type;
-                    ClassDecl cd = (ClassDecl) si.findDeclaration(ct.className.spelling);
-                    if (((MethodDecl) arg).isStatic) _errors.reportError("static method using this keyword");
-                    Declaration d = (Declaration) cd.visit(this, ref.id);
+            if (Objects.requireNonNull(context.type.typeKind) == TypeKind.CLASS) {
+                ClassType ct = (ClassType) context.type;
+                ClassDecl cd = (ClassDecl) si.findDeclaration(ct.className.spelling);
+                if (((MethodDecl) arg).isStatic) _errors.reportError("static method using this keyword");
+                Declaration d = (Declaration) cd.visit(this, ref.id);
 
-                    if (d == null) {
-                        _errors.reportError("reference not found in class");
-                        return null;
-                    }
+                if (d == null) {
+                    _errors.reportError("reference not found in class");
+                    return null;
+                }
 
-                    if (d instanceof MemberDecl md) {
-                        if (md.isPrivate && cd != ((MethodDecl) arg).insideClass)
-                            _errors.reportError("private reference");
-                    }
+                if (d instanceof MemberDecl md) {
+                    if (md.isPrivate && cd != ((MethodDecl) arg).insideClass)
+                        _errors.reportError("private reference");
+                }
 
-                    ref.id.decl = d;
-                    ref.decl = ref.id.decl;
-                    break;
-                default:
-                    _errors.reportError("incorrect qualref");
+                ref.id.decl = d;
+                ref.decl = ref.id.decl;
+            } else {
+                _errors.reportError("incorrect qualref");
             }
         }
         return null;

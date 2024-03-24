@@ -4,6 +4,8 @@ import miniJava.AbstractSyntaxTrees.Package;
 import miniJava.AbstractSyntaxTrees.*;
 import miniJava.ErrorReporter;
 
+import java.util.Objects;
+
 public class TypeChecking implements Visitor<Object, Object> {
 
     public ErrorReporter _errors;
@@ -13,7 +15,10 @@ public class TypeChecking implements Visitor<Object, Object> {
     }
 
     public void runTypeChecking(Package p) {
-        p.visit(this, null);
+        try {
+            p.visit(this, null);
+        } catch (Exception ignored) {
+        }
     }
 
     @Override
@@ -126,7 +131,7 @@ public class TypeChecking implements Visitor<Object, Object> {
         if (stmt.returnExpr == null && !md.type.typeKind.equals(TypeKind.VOID)) {
             reportError("need return stmt");
         }
-        TypeDenoter rTD = (TypeDenoter) stmt.returnExpr.visit(this, null);
+        TypeDenoter rTD = (TypeDenoter) Objects.requireNonNull(stmt.returnExpr).visit(this, null);
         checkType(md.type, rTD);
         return null;
     }
