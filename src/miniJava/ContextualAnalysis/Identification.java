@@ -99,6 +99,7 @@ public class Identification implements Visitor<Object, Object> {
     public Object visitBlockStmt(BlockStmt stmt, Object arg) {
         si.openScope();
         stmt.sl.forEach(s -> s.visit(this, arg));
+        if (stmt.sl.size() == 1 && stmt.sl.get(0) instanceof VarDeclStmt) throw new IdentificationError("one line scope");
         si.closeScope();
         return null;
     }
@@ -142,7 +143,12 @@ public class Identification implements Visitor<Object, Object> {
     public Object visitIfStmt(IfStmt stmt, Object arg) {
         stmt.cond.visit(this, arg);
         stmt.thenStmt.visit(this, arg);
-        if (stmt.elseStmt != null) stmt.elseStmt.visit(this, arg);
+        if (stmt.thenStmt instanceof VarDeclStmt) throw new IdentificationError("one line scope");
+        if (stmt.elseStmt == null) {
+            return null;
+        }
+        stmt.elseStmt.visit(this, arg);
+        if (stmt.elseStmt instanceof VarDeclStmt) throw new IdentificationError("one line scope");
         return null;
     }
 
@@ -150,6 +156,7 @@ public class Identification implements Visitor<Object, Object> {
     public Object visitWhileStmt(WhileStmt stmt, Object arg) {
         stmt.cond.visit(this, arg);
         stmt.body.visit(this, arg);
+        if (stmt.body instanceof VarDeclStmt) throw new IdentificationError("one line scope");
         return null;
     }
 
