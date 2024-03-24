@@ -22,7 +22,8 @@ public class BaseType extends TypeDenoter {
 
     public boolean equals(TypeDenoter o) {
         if (this == o) return true;
-        if (!(o instanceof BaseType baseType)) return false;
+        if (!(o instanceof BaseType)) return false;
+        BaseType baseType = (BaseType) o;
         return Objects.equals(typeKind, baseType.typeKind);
     }
 }

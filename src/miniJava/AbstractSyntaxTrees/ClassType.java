@@ -25,7 +25,8 @@ public class ClassType extends TypeDenoter {
     @Override
     public boolean equals(TypeDenoter o) {
         if (this == o) return true;
-        if (!(o instanceof ClassType classType)) return false;
+        if (!(o instanceof ClassType)) return false;
+        ClassType classType = (ClassType) o;
         return Objects.equals(className, classType.className);
     }
 }

@@ -4,7 +4,6 @@ import miniJava.AbstractSyntaxTrees.*;
 import miniJava.SyntacticAnalyzer.Token;
 import miniJava.SyntacticAnalyzer.TokenType;
 
-import java.io.Serial;
 import java.util.HashMap;
 import java.util.Stack;
 
@@ -67,8 +66,6 @@ public class ScopedIdentification {
 }
 
 class IdentificationError extends RuntimeException {
-    @Serial
-    private static final long serialVersionUID = 1L;
 
     public IdentificationError(String message) {
         super(message);
