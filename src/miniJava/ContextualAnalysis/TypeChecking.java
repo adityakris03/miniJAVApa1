@@ -114,7 +114,8 @@ public class TypeChecking implements Visitor<Object, Object> {
 
     @Override
     public Object visitCallStmt(CallStmt stmt, Object arg) {
-        if ((stmt.methodRef.decl instanceof MethodDecl md)) {
+        if ((stmt.methodRef.decl instanceof MethodDecl)) {
+            MethodDecl md = (MethodDecl) stmt.methodRef.decl;
             if (md.parameterDeclList.size() != stmt.argList.size()) reportError("incorrect argument size");
             for (int i = 0; i < md.parameterDeclList.size(); i++) {
                 checkType((TypeDenoter) stmt.argList.get(i).visit(this, null), (TypeDenoter) stmt.argList.get(i).visit(this, null));
@@ -216,7 +217,8 @@ public class TypeChecking implements Visitor<Object, Object> {
 
     @Override
     public Object visitIxExpr(IxExpr expr, Object arg) {
-        if ((TypeDenoter) expr.ref.visit(this, null) instanceof ArrayType at) {
+        if (expr.ref.visit(this, null) instanceof ArrayType) {
+            ArrayType at = (ArrayType) expr.ref.visit(this, null);
             if (!((TypeDenoter) expr.ixExpr.visit(this, null)).typeKind.equals(TypeKind.INT))
                 _errors.reportError("expected int when accessing array");
 
@@ -229,7 +231,8 @@ public class TypeChecking implements Visitor<Object, Object> {
 
     @Override
     public Object visitCallExpr(CallExpr expr, Object arg) {
-        if (expr.functionRef.decl instanceof MethodDecl md) {
+        if (expr.functionRef.decl instanceof MethodDecl) {
+            MethodDecl md = (MethodDecl) expr.functionRef.decl;
             if (md.parameterDeclList.size() != expr.argList.size()) reportError("incorrect argument size");
             for (int i = 0; i < md.parameterDeclList.size(); i++)
                 checkType((TypeDenoter) md.parameterDeclList.get(i).visit(this, null), (TypeDenoter) expr.argList.get(i).visit(this, null));

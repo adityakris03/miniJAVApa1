@@ -27,7 +27,8 @@ public class ArrayType extends TypeDenoter {
     @Override
     public boolean equals(TypeDenoter o) {
         if (this == o) return true;
-        if (!(o instanceof ArrayType arrayType)) return false;
+        if (!(o instanceof ArrayType)) return false;
+        ArrayType arrayType = (ArrayType) o;
         return Objects.equals(eltType, arrayType.eltType);
     }
 }
