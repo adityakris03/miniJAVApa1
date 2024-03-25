@@ -96,7 +96,7 @@ public class TypeChecking implements Visitor<Object, Object> {
     @Override
     public Object visitAssignStmt(AssignStmt stmt, Object arg) {
         Object placeholder = stmt.ref.decl.type.getClass();
-        if (stmt.ref.decl.type instanceof BaseType || stmt.ref.decl.type instanceof ClassType) {
+        if (stmt.ref.decl.type instanceof BaseType || stmt.ref.decl.type instanceof ClassType || stmt.ref.decl.type instanceof ArrayType) {
             checkType((TypeDenoter) stmt.ref.visit(this, null),
                     (TypeDenoter) stmt.val.visit(this, null));
             return null;
