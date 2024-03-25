@@ -4,12 +4,14 @@ import miniJava.AbstractSyntaxTrees.Package;
 import miniJava.AbstractSyntaxTrees.*;
 import miniJava.ErrorReporter;
 
+import java.util.List;
 import java.util.Objects;
 
 public class Identification implements Visitor<Object, Object> {
 
     ScopedIdentification si;
     ErrorReporter _errors;
+    String refNotUsed;
 
     public Identification(ScopedIdentification si, ErrorReporter _errors) {
         this.si = si;
@@ -35,7 +37,7 @@ public class Identification implements Visitor<Object, Object> {
 
     @Override
     public Object visitClassDecl(ClassDecl cd, Object arg) {
-        if (arg != null) return visitClassDeclHelper(cd, (Identifier) arg);
+        if (arg != null) return visitClassDeclHelper(cd, (MemberDecl) arg);
         si.openScope();
         cd.fieldDeclList.forEach(si::addDeclaration);
         cd.fieldDeclList.forEach(fd -> fd.visit(this, cd));
@@ -45,12 +47,12 @@ public class Identification implements Visitor<Object, Object> {
         return null;
     }
 
-    private Object visitClassDeclHelper(ClassDecl cd, Identifier arg) {
+    private Object visitClassDeclHelper(ClassDecl cd, MemberDecl arg) {
         for (MemberDecl md : cd.fieldDeclList)
-            if (md.name.equals(arg.spelling))
+            if (md.equals(arg))
                 return md;
         for (MemberDecl md : cd.methodDeclList)
-            if (md.name.equals(arg.spelling))
+            if (md.equals(arg))
                 return md;
         return null;
     }
@@ -116,14 +118,18 @@ public class Identification implements Visitor<Object, Object> {
     @Override
     public Object visitVardeclStmt(VarDeclStmt stmt, Object arg) {
         stmt.varDecl.visit(this, null);
+        refNotUsed = stmt.varDecl.name;
         stmt.initExp.visit(this, arg);
+        refNotUsed = null;
         return null;
     }
 
     @Override
     public Object visitAssignStmt(AssignStmt stmt, Object arg) {
         stmt.ref.visit(this, arg);
-        stmt.val.visit(this, arg);
+        Object ret = stmt.val.visit(this, arg);
+        if (ret instanceof MethodDecl)
+            throw new IdentificationError("cant use method");
         return null;
     }
 
@@ -186,8 +192,9 @@ public class Identification implements Visitor<Object, Object> {
 
     @Override
     public Object visitRefExpr(RefExpr expr, Object arg) {
-        expr.ref.visit(this, arg);
-        return null;
+
+        Object visit = expr.ref.visit(this, arg);
+        return visit;
     }
 
     @Override
@@ -232,7 +239,9 @@ public class Identification implements Visitor<Object, Object> {
     @Override
     public Object visitIdRef(IdRef ref, Object arg) {
         ref.decl = (Declaration) ref.id.visit(this, arg);
-        return null;
+        if (ref.id.spelling.equals(refNotUsed)) throw new IdentificationError("used same id in vardecl");
+        if (ref.decl instanceof ClassDecl) return visitClassDecl((ClassDecl) ref.decl, si.findDeclaration(ref.id.spelling));
+        return ref.decl;
     }
 
     @Override
@@ -246,7 +255,7 @@ public class Identification implements Visitor<Object, Object> {
         }
         if (context instanceof ClassDecl) {
             ClassDecl cd = (ClassDecl) context;
-            MemberDecl decl = (MemberDecl) cd.visit(this, ref.id);
+            MemberDecl decl = (MemberDecl) cd.visit(this, ref.id.decl);
 
             if (decl == null) {
                 _errors.reportError("failed to find declaration of id in class");
@@ -267,7 +276,7 @@ public class Identification implements Visitor<Object, Object> {
                 ClassType ct = (ClassType) context.type;
                 ClassDecl cd = (ClassDecl) si.findDeclaration(ct.className.spelling);
                 //if (((MethodDecl) arg).isStatic) _errors.reportError("static method using this keyword");
-                Declaration d = (Declaration) cd.visit(this, ref.id);
+                Declaration d = (Declaration) cd.visit(this, ref.id.decl);
                 if (d == null) {
                     _errors.reportError("reference not found in class");
                     return null;
