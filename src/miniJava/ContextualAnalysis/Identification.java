@@ -49,7 +49,11 @@ public class Identification implements Visitor<Object, Object> {
         cd.fieldDeclList.forEach(si::addDeclaration);
         cd.fieldDeclList.forEach(fd -> fd.visit(this, cd));
         cd.methodDeclList.forEach(si::addDeclaration);
-        cd.methodDeclList.forEach(md -> md.visit(this, cd));
+        cd.methodDeclList.forEach(md -> {
+            md.insideClass = cd;
+            md.visit(this, cd);
+
+        });
         si.closeScope();
         return null;
     }
@@ -274,7 +278,7 @@ public class Identification implements Visitor<Object, Object> {
                 return null;
             }
 
-            if (decl.isPrivate && cd != ((MethodDecl) arg).insideClass)
+            if (decl.isPrivate && !Objects.equals(cd.name, ((MethodDecl) arg).insideClass.name))
                 _errors.reportError("private reference");
             ref.id.decl = decl;
             ref.decl = ref.id.decl;
@@ -291,7 +295,8 @@ public class Identification implements Visitor<Object, Object> {
 
                 if (d instanceof MemberDecl) {
                     MemberDecl md = (MemberDecl) d;
-                    if (md.isPrivate && cd != ((MethodDecl) arg).insideClass)
+                    //System.out.println(cd.name);
+                    if (md.isPrivate && !cd.name.equals(((MethodDecl) arg).insideClass.name))
                         _errors.reportError("private reference");
                 }
 
