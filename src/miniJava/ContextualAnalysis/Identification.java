@@ -39,7 +39,9 @@ public class Identification implements Visitor<Object, Object> {
     @Override
     public Object visitClassDecl(ClassDecl cd, Object arg) {
         if (arg != null) {
-            if (!(arg instanceof MemberDecl)) throw new IdentificationError("incorrect type of decl");
+            if (!(arg instanceof MemberDecl)) {
+                throw new IdentificationError("incorrect type of decl");
+            }
             return visitClassDeclHelper(cd, (MemberDecl) arg);
         }
         si.openScope();
@@ -242,8 +244,10 @@ public class Identification implements Visitor<Object, Object> {
 
     @Override
     public Object visitIdRef(IdRef ref, Object arg) {
+        //System.out.println(ref.id);
         ref.decl = (Declaration) ref.id.visit(this, arg);
         if (ref.id.spelling.equals(refNotUsed)) throw new IdentificationError("used same id in vardecl");
+        //System.out.println(ref.decl.name + " " + ref.id.spelling);
         if (ref.decl instanceof ClassDecl) return visitClassDecl((ClassDecl) ref.decl, si.findDeclaration(ref.id.spelling));
         return ref.decl;
     }

@@ -40,8 +40,8 @@ public class ScopedIdentification {
     }
 
     public Declaration findDeclaration(String name) {
-        for (HashMap<String, Declaration> map : _table) {
-            if (map.containsKey(name)) return map.get(name);
+        for (int i = _table.size() - 1; i >= 0; i--) {
+            if (_table.get(i).containsKey(name)) return _table.get(i).get(name);
         }
         throw new IdentificationError("Declaration not found");
     }
