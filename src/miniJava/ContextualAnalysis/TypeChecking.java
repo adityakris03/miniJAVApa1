@@ -153,7 +153,7 @@ public class TypeChecking implements Visitor<Object, Object> {
 
     @Override
     public Object visitWhileStmt(WhileStmt stmt, Object arg) {
-        if (((TypeDenoter) stmt.cond.visit(this, null)).typeKind.equals(TypeKind.BOOLEAN))
+        if (!((TypeDenoter) stmt.cond.visit(this, null)).typeKind.equals(TypeKind.BOOLEAN))
             reportError("while cond should be boolean");
         stmt.body.visit(this, arg);
         return null;
