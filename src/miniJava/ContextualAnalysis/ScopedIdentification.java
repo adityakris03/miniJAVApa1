@@ -40,6 +40,7 @@ public class ScopedIdentification {
     }
 
     public Declaration findDeclaration(String name) {
+        //System.out.println(name);
         for (int i = _table.size() - 1; i >= 0; i--) {
             if (_table.get(i).containsKey(name)) return _table.get(i).get(name);
         }

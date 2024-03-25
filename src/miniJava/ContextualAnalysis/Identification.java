@@ -5,6 +5,7 @@ import miniJava.AbstractSyntaxTrees.*;
 import miniJava.ErrorReporter;
 
 import javax.management.RuntimeErrorException;
+import java.lang.reflect.Field;
 import java.util.List;
 import java.util.Objects;
 
@@ -130,7 +131,8 @@ public class Identification implements Visitor<Object, Object> {
     public Object visitVardeclStmt(VarDeclStmt stmt, Object arg) {
         stmt.varDecl.visit(this, null);
         refNotUsed = stmt.varDecl.name;
-        stmt.initExp.visit(this, arg);
+        Object ret = stmt.initExp.visit(this, arg);
+        if (!(ret instanceof FieldDecl)) throw new IdentificationError("illegal expression");
         refNotUsed = null;
         return null;
     }
@@ -139,7 +141,7 @@ public class Identification implements Visitor<Object, Object> {
     public Object visitAssignStmt(AssignStmt stmt, Object arg) {
         stmt.ref.visit(this, arg);
         Object ret = stmt.val.visit(this, arg);
-        if (ret instanceof MethodDecl)
+        if ((ret instanceof MethodDecl))
             throw new IdentificationError("cant use method");
         return null;
     }
