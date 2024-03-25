@@ -3,6 +3,7 @@ package miniJava.ContextualAnalysis;
 import miniJava.AbstractSyntaxTrees.Package;
 import miniJava.AbstractSyntaxTrees.*;
 import miniJava.ErrorReporter;
+import miniJava.SyntacticAnalyzer.TokenType;
 
 import java.util.Objects;
 
@@ -82,6 +83,7 @@ public class TypeChecking implements Visitor<Object, Object> {
 
     @Override
     public Object visitVardeclStmt(VarDeclStmt stmt, Object arg) {
+        //System.out.println(stmt.initExp.getClass());
         checkType((TypeDenoter) stmt.varDecl.visit(this, null),
                 (TypeDenoter) stmt.initExp.visit(this, null));
         return null;
@@ -89,8 +91,9 @@ public class TypeChecking implements Visitor<Object, Object> {
 
     private void checkType(TypeDenoter left, TypeDenoter right) {
         Object placeholder = left.typeKind + " " + right.typeKind;
-        //System.out.println(left.equals(right));
+        //System.out.println(placeholder);
         if (!left.equals(right)) reportError("incorrect type");
+        //if (left instanceof BaseType)
     }
 
     @Override

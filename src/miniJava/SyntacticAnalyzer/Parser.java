@@ -356,7 +356,8 @@ public class Parser {
                 break;
             case ID:
             case THIS:
-                Reference r = _currentToken.getTokenType() == TokenType.ID ? new IdRef(new Identifier(_currentToken), null) : new ThisRef(null);
+            case NULL:
+                Reference r = _currentToken.getTokenType() == TokenType.ID ? new IdRef(new Identifier(_currentToken), null) : _currentToken.getTokenType() == TokenType.NULL ? new NullRef(null) : new ThisRef(null);
 
                 accept(_currentToken.getTokenType());
                 while (_currentToken.getTokenType() == TokenType.PERIOD) {

@@ -25,6 +25,7 @@ public class ClassType extends TypeDenoter {
     @Override
     public boolean equals(TypeDenoter o) {
         if (this == o) return true;
+        if (o instanceof BaseType) return this.typeKind.equals(o.typeKind);
         if (!(o instanceof ClassType)) return false;
         ClassType classType = (ClassType) o;
         return Objects.equals(className.spelling, classType.className.spelling);
