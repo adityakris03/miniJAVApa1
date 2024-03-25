@@ -102,7 +102,7 @@ public class Identification implements Visitor<Object, Object> {
 
     @Override
     public Object visitClassType(ClassType type, Object arg) {
-        if(!(si.findDeclaration(type.className.spelling) instanceof ClassDecl)) throw new IdentificationError("not class type");
+        if(!(si._table.get(0).get(type.className.spelling) instanceof ClassDecl)) throw new IdentificationError("not class type");
         return null;
     }
 
