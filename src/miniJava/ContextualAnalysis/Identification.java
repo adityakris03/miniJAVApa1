@@ -4,6 +4,7 @@ import miniJava.AbstractSyntaxTrees.Package;
 import miniJava.AbstractSyntaxTrees.*;
 import miniJava.ErrorReporter;
 
+import javax.management.RuntimeErrorException;
 import java.util.List;
 import java.util.Objects;
 
@@ -37,7 +38,10 @@ public class Identification implements Visitor<Object, Object> {
 
     @Override
     public Object visitClassDecl(ClassDecl cd, Object arg) {
-        if (arg != null) return visitClassDeclHelper(cd, (MemberDecl) arg);
+        if (arg != null) {
+            if (!(arg instanceof MemberDecl)) throw new IdentificationError("incorrect type of decl");
+            return visitClassDeclHelper(cd, (MemberDecl) arg);
+        }
         si.openScope();
         cd.fieldDeclList.forEach(si::addDeclaration);
         cd.fieldDeclList.forEach(fd -> fd.visit(this, cd));
