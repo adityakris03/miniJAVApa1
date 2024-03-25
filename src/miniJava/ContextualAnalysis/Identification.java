@@ -140,8 +140,8 @@ public class Identification implements Visitor<Object, Object> {
     public Object visitAssignStmt(AssignStmt stmt, Object arg) {
         stmt.ref.visit(this, arg);
         Object ret = stmt.val.visit(this, arg);
-        if ((ret instanceof MethodDecl))
-            throw new IdentificationError("cant use method");
+        if ((ret instanceof MethodDecl || ret instanceof ClassDecl))
+            throw new IdentificationError("cant use method or classdecl");
         return null;
     }
 
