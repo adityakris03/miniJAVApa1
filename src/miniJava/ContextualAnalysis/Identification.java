@@ -5,7 +5,6 @@ import miniJava.AbstractSyntaxTrees.*;
 import miniJava.ErrorReporter;
 
 import javax.management.RuntimeErrorException;
-import java.lang.reflect.Field;
 import java.util.List;
 import java.util.Objects;
 
@@ -132,7 +131,7 @@ public class Identification implements Visitor<Object, Object> {
         stmt.varDecl.visit(this, null);
         refNotUsed = stmt.varDecl.name;
         Object ret = stmt.initExp.visit(this, arg);
-        if (!(ret instanceof FieldDecl)) throw new IdentificationError("illegal expression");
+        if (ret instanceof ClassDecl) throw new IdentificationError("no classdecl allwoed");
         refNotUsed = null;
         return null;
     }
