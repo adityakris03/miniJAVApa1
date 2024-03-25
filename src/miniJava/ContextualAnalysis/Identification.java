@@ -192,7 +192,6 @@ public class Identification implements Visitor<Object, Object> {
 
     @Override
     public Object visitIxExpr(IxExpr expr, Object arg) {
-        System.out.println(expr.ref.getClass());
         expr.ref.visit(this, arg);
         expr.ixExpr.visit(this, arg);
         return null;
@@ -245,7 +244,8 @@ public class Identification implements Visitor<Object, Object> {
             _errors.reportError("referencing without context");
             return null;
         }
-        if (context instanceof ClassDecl cd) {
+        if (context instanceof ClassDecl) {
+            ClassDecl cd = (ClassDecl) context;
             MemberDecl decl = (MemberDecl) cd.visit(this, ref.id);
 
             if (decl == null) {
@@ -273,7 +273,8 @@ public class Identification implements Visitor<Object, Object> {
                     return null;
                 }
 
-                if (d instanceof MemberDecl md) {
+                if (d instanceof MemberDecl) {
+                    MemberDecl md = (MemberDecl) d;
                     if (md.isPrivate && cd != ((MethodDecl) arg).insideClass)
                         _errors.reportError("private reference");
                 }
