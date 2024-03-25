@@ -283,6 +283,9 @@ public class Identification implements Visitor<Object, Object> {
                 _errors.reportError("private reference");
             ref.id.decl = decl;
             ref.decl = ref.id.decl;
+            if(ref.decl instanceof MethodDecl) {
+                throw new IdentificationError("Cant have left hand side of qualref as a method");
+            }
         } else if (context instanceof LocalDecl || context instanceof MemberDecl) {
             if (Objects.requireNonNull(context.type.typeKind) == TypeKind.CLASS) {
                 ClassType ct = (ClassType) context.type;
@@ -303,6 +306,9 @@ public class Identification implements Visitor<Object, Object> {
 
                 ref.id.decl = d;
                 ref.decl = ref.id.decl;
+                if(ref.decl instanceof MethodDecl) {
+                    throw new IdentificationError("Cant have left hand side of qualref as a method");
+                }
             } else {
                 _errors.reportError("incorrect qualref");
             }
