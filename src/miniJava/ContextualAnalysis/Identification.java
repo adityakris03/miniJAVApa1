@@ -121,7 +121,7 @@ public class Identification implements Visitor<Object, Object> {
     public Object visitBlockStmt(BlockStmt stmt, Object arg) {
         si.openScope();
         stmt.sl.forEach(s -> s.visit(this, arg));
-        if (stmt.sl.size() == 1 && stmt.sl.get(0) instanceof VarDeclStmt) throw new IdentificationError("one line scope");
+        //if (stmt.sl.size() == 1 && stmt.sl.get(0) instanceof VarDeclStmt) throw new IdentificationError("one line scope");
         si.closeScope();
         return null;
     }
