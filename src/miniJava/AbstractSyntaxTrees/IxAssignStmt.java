@@ -12,7 +12,6 @@ public class IxAssignStmt extends StatementReference {
     public Reference ref;
     public Expression ix;
     public Expression exp;
-
     public IxAssignStmt(Reference r, Expression i, Expression e, SourcePosition posn) {
         super(posn);
         ref = r;

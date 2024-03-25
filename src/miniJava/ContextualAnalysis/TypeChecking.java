@@ -42,7 +42,7 @@ public class TypeChecking implements Visitor<Object, Object> {
     @Override
     public Object visitMethodDecl(MethodDecl md, Object arg) {
         md.parameterDeclList.forEach(pd -> pd.visit(this, null));
-        md.statementList.forEach(sl -> sl.visit(this, md));
+        md.statementList.forEach(s -> s.visit(this, md));
         return md.type;
     }
 
@@ -88,7 +88,7 @@ public class TypeChecking implements Visitor<Object, Object> {
     }
 
     private void checkType(TypeDenoter left, TypeDenoter right) {
-        System.out.println(left.typeKind + " " + right.typeKind);
+        //System.out.println(left.typeKind + " " + right.typeKind);
         if (!left.equals(right)) reportError("incorrect type");
     }
 
@@ -121,7 +121,7 @@ public class TypeChecking implements Visitor<Object, Object> {
             MethodDecl md = (MethodDecl) stmt.methodRef.decl;
             if (md.parameterDeclList.size() != stmt.argList.size()) reportError("incorrect argument size");
             for (int i = 0; i < md.parameterDeclList.size(); i++) {
-                checkType((TypeDenoter) stmt.argList.get(i).visit(this, null), (TypeDenoter) stmt.argList.get(i).visit(this, null));
+                checkType((TypeDenoter) md.parameterDeclList.get(i).visit(this, null), (TypeDenoter) stmt.argList.get(i).visit(this, null));
             }
         } else {
             reportError("should be method decl");

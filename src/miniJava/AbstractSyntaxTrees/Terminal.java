@@ -13,7 +13,6 @@ abstract public class Terminal extends AST {
 
     public TokenType kind;
     public String spelling;
-
     public Terminal(Token t) {
         super(t.getTokenPosition());
         spelling = t.getTokenText();

@@ -12,7 +12,6 @@ public class BinaryExpr extends Expression {
     public Operator operator;
     public Expression left;
     public Expression right;
-
     public BinaryExpr(Operator o, Expression e1, Expression e2, SourcePosition posn) {
         super(posn);
         operator = o;

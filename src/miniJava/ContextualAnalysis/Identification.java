@@ -26,11 +26,9 @@ public class Identification implements Visitor<Object, Object> {
 
     @Override
     public Object visitPackage(Package prog, Object arg) {
-        //opening level 0
-        si.openScope();
+        //opened level 0
         prog.classDeclList.forEach(si::addDeclaration);
         prog.classDeclList.forEach(cd -> cd.visit(this, null));
-        si.closeScope();
         si.closeScope();
         return null;
     }
@@ -247,8 +245,7 @@ public class Identification implements Visitor<Object, Object> {
             _errors.reportError("referencing without context");
             return null;
         }
-        if (context instanceof ClassDecl) {
-            ClassDecl cd = (ClassDecl) context;
+        if (context instanceof ClassDecl cd) {
             MemberDecl decl = (MemberDecl) cd.visit(this, ref.id);
 
             if (decl == null) {
@@ -256,16 +253,13 @@ public class Identification implements Visitor<Object, Object> {
                 return null;
             }
 
-            if (decl instanceof MemberDecl) {
-                MemberDecl md = (MemberDecl) decl;
-                if (((MethodDecl) arg).isStatic && !md.isStatic) {
-                    _errors.reportError("static reference to non-static variable");
-                    return null;
-                }
-
-                if (md.isPrivate && cd != ((MethodDecl) arg).insideClass)
-                    _errors.reportError("private reference");
+            if (((MethodDecl) arg).isStatic && !decl.isStatic) {
+                _errors.reportError("static reference to non-static variable");
+                return null;
             }
+
+            if (decl.isPrivate && cd != ((MethodDecl) arg).insideClass)
+                _errors.reportError("private reference");
             ref.id.decl = decl;
             ref.decl = ref.id.decl;
         } else if (context instanceof LocalDecl || context instanceof MemberDecl) {
@@ -279,8 +273,7 @@ public class Identification implements Visitor<Object, Object> {
                     return null;
                 }
 
-                if (d instanceof MemberDecl) {
-                    MemberDecl md = (MemberDecl) d;
+                if (d instanceof MemberDecl md) {
                     if (md.isPrivate && cd != ((MethodDecl) arg).insideClass)
                         _errors.reportError("private reference");
                 }
