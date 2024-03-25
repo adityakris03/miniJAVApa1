@@ -31,6 +31,9 @@ public class Identification implements Visitor<Object, Object> {
     public Object visitPackage(Package prog, Object arg) {
         //opened level 0
         prog.classDeclList.forEach(si::addDeclaration);
+        visitClassDecl((ClassDecl) si.findDeclaration("String"), null);
+        visitClassDecl((ClassDecl) si.findDeclaration("_PrintStream"), null);
+        visitClassDecl((ClassDecl) si.findDeclaration("System"), null);
         prog.classDeclList.forEach(cd -> cd.visit(this, null));
         si.closeScope();
         return null;
@@ -39,10 +42,8 @@ public class Identification implements Visitor<Object, Object> {
     @Override
     public Object visitClassDecl(ClassDecl cd, Object arg) {
         if (arg != null) {
-            if (!(arg instanceof MemberDecl)) {
-                throw new IdentificationError("incorrect type of decl");
-            }
-            return visitClassDeclHelper(cd, (MemberDecl) arg);
+
+            return visitClassDeclHelper(cd, (String) arg);
         }
         si.openScope();
         cd.fieldDeclList.forEach(si::addDeclaration);
@@ -53,14 +54,14 @@ public class Identification implements Visitor<Object, Object> {
         return null;
     }
 
-    private Object visitClassDeclHelper(ClassDecl cd, MemberDecl arg) {
+    private Object visitClassDeclHelper(ClassDecl cd, String arg) {
         for (MemberDecl md : cd.fieldDeclList)
-            if (md.equals(arg))
+            if (md.name.equals(arg))
                 return md;
         for (MemberDecl md : cd.methodDeclList)
-            if (md.equals(arg))
+            if (md.name.equals(arg))
                 return md;
-        return null;
+        throw new IdentificationError("not found");
     }
 
     @Override
@@ -244,11 +245,9 @@ public class Identification implements Visitor<Object, Object> {
 
     @Override
     public Object visitIdRef(IdRef ref, Object arg) {
-        //System.out.println(ref.id);
         ref.decl = (Declaration) ref.id.visit(this, arg);
         if (ref.id.spelling.equals(refNotUsed)) throw new IdentificationError("used same id in vardecl");
-        //System.out.println(ref.decl.name + " " + ref.id.spelling);
-        if (ref.decl instanceof ClassDecl) return visitClassDecl((ClassDecl) ref.decl, si.findDeclaration(ref.id.spelling));
+        if (ref.decl instanceof ClassDecl && !Objects.equals(ref.decl.name, ref.id.spelling)) return visitClassDecl((ClassDecl) ref.decl, ref.id.spelling);
         return ref.decl;
     }
 
@@ -263,7 +262,7 @@ public class Identification implements Visitor<Object, Object> {
         }
         if (context instanceof ClassDecl) {
             ClassDecl cd = (ClassDecl) context;
-            MemberDecl decl = (MemberDecl) cd.visit(this, ref.id.decl);
+            MemberDecl decl = (MemberDecl) cd.visit(this, ref.id.spelling);
 
             if (decl == null) {
                 _errors.reportError("failed to find declaration of id in class");
@@ -284,7 +283,7 @@ public class Identification implements Visitor<Object, Object> {
                 ClassType ct = (ClassType) context.type;
                 ClassDecl cd = (ClassDecl) si.findDeclaration(ct.className.spelling);
                 //if (((MethodDecl) arg).isStatic) _errors.reportError("static method using this keyword");
-                Declaration d = (Declaration) cd.visit(this, ref.id.decl);
+                Declaration d = (Declaration) cd.visit(this, ref.id.spelling);
                 if (d == null) {
                     _errors.reportError("reference not found in class");
                     return null;
