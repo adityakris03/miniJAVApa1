@@ -29,7 +29,7 @@ public class ArrayType extends TypeDenoter {
         if (this == o) return true;
         if (!(o instanceof ArrayType)) return false;
         ArrayType arrayType = (ArrayType) o;
-        return Objects.equals(eltType, arrayType.eltType);
+        return eltType.equals(arrayType.eltType);
     }
 }
 
