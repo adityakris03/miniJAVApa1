@@ -38,6 +38,7 @@ public class Compiler {
                 System.out.println("Error");
                 errors.outputErrors();
             } else {
+                //astDisplay.showTree(p);
                 i.runIdentification(p);
                 tc.runTypeChecking(p);
                 if (errors.hasErrors()) {

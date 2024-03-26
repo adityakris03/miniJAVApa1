@@ -204,8 +204,8 @@ public class Identification implements Visitor<Object, Object> {
 
     @Override
     public Object visitRefExpr(RefExpr expr, Object arg) {
-
         Object visit = expr.ref.visit(this, arg);
+        if (expr.ref.decl instanceof MethodDecl) throw new IdentificationError("illegal method usage");
         return visit;
     }
 
@@ -315,7 +315,7 @@ public class Identification implements Visitor<Object, Object> {
         }else {
             _errors.reportError("incorrect qualref");
         }
-        if (ref.id.decl instanceof MethodDecl) throw new IdentificationError("methoddecl in illegal palce");
+        //if (ref.id.decl instanceof MethodDecl) throw new IdentificationError("methoddecl in illegal palce");
         return null;
     }
 
