@@ -260,15 +260,18 @@ public class Identification implements Visitor<Object, Object> {
     public Object visitQRef(QualRef ref, Object arg) {
         ref.ref.visit(this, arg);
         Declaration context = ref.ref.decl;
-
         if (context == null) {
             _errors.reportError("referencing without context");
             return null;
         }
+        //System.out.println(ref.ref.decl.getClass());
+
         if (context instanceof ClassDecl) {
             ClassDecl cd = (ClassDecl) context;
             MemberDecl decl = (MemberDecl) cd.visit(this, ref.id.spelling);
-
+            if(ref.ref.decl instanceof MethodDecl) {
+                throw new IdentificationError("Cant have left hand side of qualref as a method");
+            }
             if (decl == null) {
                 _errors.reportError("failed to find declaration of id in class");
                 return null;
@@ -283,13 +286,15 @@ public class Identification implements Visitor<Object, Object> {
                 _errors.reportError("private reference");
             ref.id.decl = decl;
             ref.decl = ref.id.decl;
-
         } else if (context instanceof LocalDecl || context instanceof MemberDecl) {
             if (Objects.requireNonNull(context.type.typeKind) == TypeKind.CLASS) {
                 ClassType ct = (ClassType) context.type;
                 ClassDecl cd = (ClassDecl) si.findDeclaration(ct.className.spelling);
                 //if (((MethodDecl) arg).isStatic) _errors.reportError("static method using this keyword");
                 Declaration d = (Declaration) cd.visit(this, ref.id.spelling);
+                if(ref.ref.decl instanceof MethodDecl) {
+                    throw new IdentificationError("Cant have left hand side of qualref as a method");
+                }
                 if (d == null) {
                     _errors.reportError("reference not found in class");
                     return null;
@@ -304,15 +309,13 @@ public class Identification implements Visitor<Object, Object> {
 
                 ref.id.decl = d;
                 ref.decl = ref.id.decl;
-                if(ref.decl instanceof MethodDecl) {
-                    throw new IdentificationError("Cant have left hand side of qualref as a method");
-                }
             } else {
                 _errors.reportError("incorrect qualref");
             }
         }else {
             _errors.reportError("incorrect qualref");
         }
+        if (ref.id.decl instanceof MethodDecl) throw new IdentificationError("methoddecl in illegal palce");
         return null;
     }
 
