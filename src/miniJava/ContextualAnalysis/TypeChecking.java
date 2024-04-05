@@ -93,7 +93,12 @@ public class TypeChecking implements Visitor<Object, Object> {
         Object placeholder = left.typeKind + " " + right.typeKind;
         //System.out.println(placeholder);
         if (!left.equals(right)) {
-            Object placeholder2 = ((ClassType) left).className.spelling.equals(((ClassType) right).className.spelling);
+            if (left instanceof ClassType && right instanceof ClassType) {
+                Object placeholder2 = ((ClassType) left).className.spelling.equals(((ClassType) right).className.spelling);
+            }
+            if (left instanceof BaseType && right instanceof BaseType) {
+                Object placeholder2 = ((BaseType) left).typeKind.equals(((BaseType) right).typeKind);
+            }
             reportError("incorrect type");
         }
         //if (left instanceof BaseType)
