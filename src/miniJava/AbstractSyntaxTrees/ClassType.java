@@ -28,6 +28,7 @@ public class ClassType extends TypeDenoter {
         if (o instanceof BaseType) return this.typeKind.equals(o.typeKind);
         if (!(o instanceof ClassType)) return false;
         ClassType classType = (ClassType) o;
+        //System.out.println(className.spelling.equals(classType.className.spelling) + " about to return");
         return className.spelling.equals(classType.className.spelling);
     }
 }

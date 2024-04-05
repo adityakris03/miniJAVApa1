@@ -92,10 +92,16 @@ public class TypeChecking implements Visitor<Object, Object> {
     private void checkType(TypeDenoter left, TypeDenoter right) {
         Object placeholder = left.typeKind + " " + right.typeKind;
         //System.out.println(placeholder);
+//        if (left instanceof ClassType && right instanceof ClassType) {
+//            //System.out.println(((ClassType) left).className.spelling + " " + ((ClassType) right).className.spelling);
+//            //System.out.println(((ClassType) left).className.spelling.equals(((ClassType) right).className.spelling));
+//            System.out.println(((ClassType)left).equals(((ClassType)right)));
+//        }
+        Object o = ((ClassType)left).equals(((ClassType) right)) ? left instanceof ClassType && right instanceof ClassType : "place";
         if (!left.equals(right)) {
-            if (left instanceof ClassType && right instanceof ClassType) {
-                Object placeholder2 = ((ClassType) left).className.spelling.equals(((ClassType) right).className.spelling);
-            }
+//            if (left instanceof ClassType) {
+//                Object o = ((ClassType)left).equals(right);
+//            }
             if (left instanceof BaseType && right instanceof BaseType) {
                 Object placeholder2 = ((BaseType) left).typeKind.equals(((BaseType) right).typeKind);
             }
