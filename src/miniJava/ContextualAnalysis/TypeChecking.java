@@ -85,14 +85,17 @@ public class TypeChecking implements Visitor<Object, Object> {
     public Object visitVardeclStmt(VarDeclStmt stmt, Object arg) {
         //System.out.println(stmt.initExp.getClass());
         checkType((TypeDenoter) stmt.varDecl.visit(this, null),
-                (TypeDenoter) stmt.initExp.visit(this, null));
+                (TypeDenoter) stmt.initExp.visit(this, arg));
         return null;
     }
 
     private void checkType(TypeDenoter left, TypeDenoter right) {
         Object placeholder = left.typeKind + " " + right.typeKind;
         //System.out.println(placeholder);
-        if (!left.equals(right)) reportError("incorrect type");
+        if (!left.equals(right)) {
+            Object placeholder2 = ((ClassType) left).className.spelling.equals(((ClassType) right).className.spelling);
+            reportError("incorrect type");
+        }
         //if (left instanceof BaseType)
     }
 
@@ -180,8 +183,9 @@ public class TypeChecking implements Visitor<Object, Object> {
 
     @Override
     public Object visitBinaryExpr(BinaryExpr expr, Object arg) {
-        TypeDenoter left = (TypeDenoter) expr.left.visit(this, null);
-        TypeDenoter right = (TypeDenoter) expr.right.visit(this, null);
+        //System.out.println("here");
+        TypeDenoter left = (TypeDenoter) expr.left.visit(this, arg);
+        TypeDenoter right = (TypeDenoter) expr.right.visit(this, arg);
 
         switch (expr.operator.spelling) {
             case ">":
@@ -219,7 +223,7 @@ public class TypeChecking implements Visitor<Object, Object> {
 
     @Override
     public Object visitRefExpr(RefExpr expr, Object arg) {
-        return expr.ref.visit(this, null);
+        return expr.ref.visit(this, arg);
     }
 
     @Override
@@ -275,6 +279,9 @@ public class TypeChecking implements Visitor<Object, Object> {
 
     @Override
     public Object visitIdRef(IdRef ref, Object arg) {
+        if (arg instanceof MethodDecl && ((MethodDecl) arg).isStatic && ref.decl instanceof MemberDecl && !((MemberDecl) ref.decl).isStatic) {
+            reportError("static var used in non static context");
+        }
         return ref.decl.type;
     }
 
