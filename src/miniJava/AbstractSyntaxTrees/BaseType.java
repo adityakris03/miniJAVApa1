@@ -20,6 +20,7 @@ public class BaseType extends TypeDenoter {
         return v.visitBaseType(this, o);
     }
 
+    @Override
     public boolean equals(TypeDenoter o) {
         if (this == o) return true;
         if (!(o instanceof BaseType)) return false;
