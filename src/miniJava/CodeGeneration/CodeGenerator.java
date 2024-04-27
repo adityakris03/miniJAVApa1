@@ -108,7 +108,15 @@ public class CodeGenerator implements Visitor<Object, Object> {
 		md.instructionAddr = _asm.getSize();
 		_asm.add(new Push(Reg64.RBP));
 		_asm.add(new Mov_rmr(new R(Reg64.RBP, Reg64.RSP)));
-		boolean isMain = Objects.equals(md.name, "main") && md.isStatic && !md.isPrivate && md.type.typeKind == TypeKind.VOID && md.parameterDeclList.size() == 1 && md.parameterDeclList.get(0).name.equals("args") && md.parameterDeclList.get(0).type instanceof ArrayType && ((ArrayType)md.parameterDeclList.get(0).type).eltType.typeKind == TypeKind.CLASS && ((ClassType)((ArrayType)md.parameterDeclList.get(0).type).eltType).className.spelling.equals("String");
+		boolean isMain = md.name.equals("main") &&
+				md.isStatic &&
+				!md.isPrivate &&
+				md.type.typeKind == TypeKind.VOID &&
+				md.parameterDeclList.size() == 1 &&
+				md.parameterDeclList.get(0).name.equals("args") &&
+				md.parameterDeclList.get(0).type instanceof ArrayType &&
+				((ArrayType)md.parameterDeclList.get(0).type).eltType.typeKind == TypeKind.UNSUPPORTED /*&&
+				((ClassType)((ArrayType)md.parameterDeclList.get(0).type).eltType).className.spelling.equals("String")*/;
 		if (isMain) mainAddr = md.instructionAddr;
 		md.parameterDeclList.forEach(pd -> pd.visit(this, md));
 		md.stackSize = md.args;

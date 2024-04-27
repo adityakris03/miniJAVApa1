@@ -3,5 +3,7 @@
 pa1-tests-partial/
 pa2-tests-partial/
 pa3_tests/
+pa4_tests_partial/
+a.out
 classes/*
 out/
