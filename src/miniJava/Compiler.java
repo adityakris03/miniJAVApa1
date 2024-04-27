@@ -2,6 +2,7 @@ package miniJava;
 
 import miniJava.AbstractSyntaxTrees.ASTDisplay;
 import miniJava.AbstractSyntaxTrees.Package;
+import miniJava.CodeGeneration.CodeGenerator;
 import miniJava.ContextualAnalysis.Identification;
 import miniJava.ContextualAnalysis.ScopedIdentification;
 import miniJava.ContextualAnalysis.TypeChecking;
@@ -46,7 +47,10 @@ public class Compiler {
                     //  then output the errors
                     System.out.println("Error");
                     errors.outputErrors();
-                } else System.out.println("Success");
+                } else {
+                    CodeGenerator cg = new CodeGenerator(errors);
+                    cg.parse(p);
+                }
             }
         } catch (FileNotFoundException e) {
             throw new RuntimeException(e);

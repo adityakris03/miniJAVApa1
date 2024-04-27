@@ -6,13 +6,15 @@ import miniJava.AbstractSyntaxTrees.Package;
 import miniJava.CodeGeneration.x64.*;
 import miniJava.CodeGeneration.x64.ISA.*;
 
-import java.lang.reflect.Method;
+import java.util.*;
 
 public class CodeGenerator implements Visitor<Object, Object> {
 	private ErrorReporter _errors;
 	private InstructionList _asm; // our list of instructions that are used to make the code section
 	private int staticVars = 0;
 	private int offset = -8;
+	private Map<String, List<Instruction>> patch = new HashMap<>();
+	private int mainAddr = -1;
 	public CodeGenerator(ErrorReporter errors) {
 		this._errors = errors;
 	}
@@ -64,6 +66,7 @@ public class CodeGenerator implements Visitor<Object, Object> {
 		//     _asm.patch( someJump.listIdx, new Jmp(asm.size(), someJump.startAddress, false) );
 		
 		prog.visit(this,null);
+		if (mainAddr == -1) _errors.reportError("No main method");
 		
 		// Output the file "a.out" if no errors
 		if( !_errors.hasErrors() )
@@ -87,10 +90,10 @@ public class CodeGenerator implements Visitor<Object, Object> {
 	@Override
 	public Object visitFieldDecl(FieldDecl fd, Object arg) {
 		if (fd.isStatic) {
-			fd.offset = staticVars;
+			fd.offset = staticVars*8;
 			staticVars++;
 		} else {
-			fd.offset = ((ClassDecl) arg)._size;
+			fd.offset = ((ClassDecl) arg)._size*8;
 			((ClassDecl) arg)._size++;
 		}
 		return null;
@@ -98,16 +101,38 @@ public class CodeGenerator implements Visitor<Object, Object> {
 
 	@Override
 	public Object visitMethodDecl(MethodDecl md, Object arg) {
-		md.instructionNum = _asm.getSize();
+		if (md.name.equals("println") && md.insideClass.name.equals("_PrintStream")) {
+			makePrintln();
+			return null;
+		}
+		md.instructionAddr = _asm.getSize();
+		_asm.add(new Push(Reg64.RBP));
+		_asm.add(new Mov_rmr(new R(Reg64.RBP, Reg64.RSP)));
+		boolean isMain = Objects.equals(md.name, "main") && md.isStatic && !md.isPrivate && md.type.typeKind == TypeKind.VOID && md.parameterDeclList.size() == 1 && md.parameterDeclList.get(0).name.equals("args") && md.parameterDeclList.get(0).type instanceof ArrayType && ((ArrayType)md.parameterDeclList.get(0).type).eltType.typeKind == TypeKind.CLASS && ((ClassType)((ArrayType)md.parameterDeclList.get(0).type).eltType).className.spelling.equals("String");
+		if (isMain) mainAddr = md.instructionAddr;
 		md.parameterDeclList.forEach(pd -> pd.visit(this, md));
+		md.stackSize = md.args;
 		md.statementList.forEach(s -> s.visit(this, md));
-
+		if (md.type.typeKind != TypeKind.VOID && (md.statementList.get(md.statementList.size()-1) instanceof ReturnStmt)) _errors.reportError("No return statement for non void method.");
+		if (patch.containsKey(md.name)) {
+			patch.get(md.name).forEach(instruction -> _asm.patch(instruction.listIdx, new Call(instruction.startAddress, md.instructionAddr)));
+			patch.remove(md.name);
+		}
+		_asm.add(new Mov_rmr(new R(Reg64.RSP, Reg64.RBP)));
+		_asm.add(new Pop(Reg64.RBP));
+		if (!isMain)
+			_asm.add(new Ret());
+		else {
+			_asm.add(new Mov_ri64(Reg64.RAX, 60));
+			_asm.add(new Xor(new R(Reg64.RDI, Reg64.RDI)));
+			_asm.add(new Syscall());
+		}
 		return null;
 	}
 
 	@Override
 	public Object visitParameterDecl(ParameterDecl pd, Object arg) {
-		pd.offset = ((MethodDecl) arg).parameterDeclList.size() - ((MethodDecl) arg).args;
+		pd.offset = (((MethodDecl) arg).parameterDeclList.size() - ((MethodDecl) arg).args)*8 + (((MethodDecl) arg).isStatic ? 8 : 16);
 		((MethodDecl) arg).args++;
 		return null;
 	}
@@ -117,6 +142,7 @@ public class CodeGenerator implements Visitor<Object, Object> {
 		decl.offset = offset;
 		_asm.add(new Push(0));
 		offset -= 8;
+		((MethodDecl) arg).stackSize++;
 		return null;
 	}
 
@@ -148,7 +174,7 @@ public class CodeGenerator implements Visitor<Object, Object> {
 
 	@Override
 	public Object visitVardeclStmt(VarDeclStmt stmt, Object arg) {
-		stmt.varDecl.visit(this, null);
+		stmt.varDecl.visit(this, arg);
 		stmt.initExp.visit(this, null);
 		_asm.add(new Pop(Reg64.RAX));
 		_asm.add(new Mov_rmr(new R(Reg64.RBP, stmt.varDecl.offset, Reg64.RAX)));
@@ -182,8 +208,34 @@ public class CodeGenerator implements Visitor<Object, Object> {
 
 	@Override
 	public Object visitCallStmt(CallStmt stmt, Object arg) {
-		stmt.argList.forEach(s -> s.visit(this, null));
-		stmt.methodRef.visit(this, null);
+		for (int i = stmt.argList.size() - 1; i > 0; i--) stmt.argList.get(i).visit(this, null);
+		if (stmt.methodRef instanceof QualRef) {
+			if (!((MethodDecl)stmt.methodRef.decl).isStatic)
+				((QualRef) stmt.methodRef).ref.visit(this, true);
+			if (((MethodDecl)((QualRef) stmt.methodRef).id.decl).instructionAddr == -1) {
+				Call jmp = new Call(0);
+				_asm.add(jmp);
+				Object s = patch.containsKey(((QualRef) stmt.methodRef).id.spelling) ?
+						patch.get(((QualRef) stmt.methodRef).id.spelling).add(jmp) :
+						patch.put(((QualRef) stmt.methodRef).id.spelling, new ArrayList<>(Collections.singletonList(jmp)));
+
+			}else {
+				_asm.add(new Call(_asm.getSize(), ((MethodDecl)((QualRef) stmt.methodRef).id.decl).instructionAddr));
+			}
+		} else {
+			if (!((MethodDecl)stmt.methodRef.decl).isStatic)
+				(stmt.methodRef).visit(this, true);
+			if (((MethodDecl)(stmt.methodRef).decl).instructionAddr == -1) {
+				Call jmp = new Call(0);
+				_asm.add(jmp);
+				Object s = patch.containsKey((stmt.methodRef).decl.name) ?
+						patch.get((stmt.methodRef).decl.name).add(jmp) :
+						patch.put((stmt.methodRef).decl.name, new ArrayList<>(Collections.singletonList(jmp)));
+
+			}else {
+				_asm.add(new Call(_asm.getSize(), ((MethodDecl)(stmt.methodRef).decl).instructionAddr));
+			}
+		}
 		return null;
 	}
 
@@ -304,7 +356,34 @@ public class CodeGenerator implements Visitor<Object, Object> {
 
 	@Override
 	public Object visitCallExpr(CallExpr expr, Object arg) {
-		expr.functionRef.decl.visit(this, null);
+		for (int i = expr.argList.size() - 1; i > 0; i--) expr.argList.get(i).visit(this, null);
+		if (expr.functionRef instanceof QualRef) {
+			if (!((MethodDecl)expr.functionRef.decl).isStatic)
+				((QualRef) expr.functionRef).ref.visit(this, true);
+			if (((MethodDecl)((QualRef) expr.functionRef).id.decl).instructionAddr == -1) {
+				Call jmp = new Call(0);
+				_asm.add(jmp);
+				Object s = patch.containsKey(((QualRef) expr.functionRef).id.spelling) ?
+						patch.get(((QualRef) expr.functionRef).id.spelling).add(jmp) :
+						patch.put(((QualRef) expr.functionRef).id.spelling, new ArrayList<>(Collections.singletonList(jmp)));
+
+			}else {
+				_asm.add(new Call(_asm.getSize(), ((MethodDecl)((QualRef) expr.functionRef).id.decl).instructionAddr));
+			}
+		} else {
+			if (!((MethodDecl)expr.functionRef.decl).isStatic)
+				(expr.functionRef).visit(this, true);
+			if (((MethodDecl)(expr.functionRef).decl).instructionAddr == -1) {
+				Call jmp = new Call(0);
+				_asm.add(jmp);
+				Object s = patch.containsKey((expr.functionRef).decl.name) ?
+						patch.get((expr.functionRef).decl.name).add(jmp) :
+						patch.put((expr.functionRef).decl.name, new ArrayList<>(Collections.singletonList(jmp)));
+
+			}else {
+				_asm.add(new Call(_asm.getSize(), ((MethodDecl)(expr.functionRef).decl).instructionAddr));
+			}
+		}
 		return null;
 	}
 
@@ -398,7 +477,7 @@ public class CodeGenerator implements Visitor<Object, Object> {
 
 	public void makeElf(String fname) {
 		ELFMaker elf = new ELFMaker(_errors, _asm.getSize(), 8); // bss ignored until PA5, set to 8
-		elf.outputELF(fname, _asm.getBytes(), ??); // TODO: set the location of the main method
+		elf.outputELF(fname, _asm.getBytes(), mainAddr); // TODO: set the location of the main method
 	}
 	
 	private int makeMalloc() {
@@ -419,6 +498,11 @@ public class CodeGenerator implements Visitor<Object, Object> {
 	
 	private int makePrintln() {
 		// TODO: how can we generate the assembly to println?
-		return -1;
+		_asm.add(new Mov_ri64(Reg64.RAX, 1));
+		_asm.add(new Mov_ri64(Reg64.RDI, 1));
+		_asm.add(new Mov_rrm(new R(Reg64.RSP, Reg64.RSI)));
+		_asm.add(new Mov_ri64(Reg64.RDX, 1));
+		return _asm.add(new Syscall());
 	}
+
 }

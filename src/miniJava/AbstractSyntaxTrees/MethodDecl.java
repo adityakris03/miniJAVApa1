@@ -13,8 +13,8 @@ public class MethodDecl extends MemberDecl {
     public ParameterDeclList parameterDeclList;
     public StatementList statementList;
     public ClassDecl insideClass;
-    public int instructionNum;
-    public int args;
+    public int instructionAddr = -1;
+    public int args = 0;
     public int stackSize = 0;
     public MethodDecl(MemberDecl md, ParameterDeclList pl, StatementList sl, SourcePosition posn) {
         super(md, posn);
