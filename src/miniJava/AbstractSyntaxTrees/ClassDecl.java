@@ -12,6 +12,7 @@ public class ClassDecl extends Declaration {
 
     public FieldDeclList fieldDeclList;
     public MethodDeclList methodDeclList;
+    public int _size = 0;
 
     public ClassDecl(String cn, FieldDeclList fdl, MethodDeclList mdl, SourcePosition posn) {
         super(cn, null, posn);

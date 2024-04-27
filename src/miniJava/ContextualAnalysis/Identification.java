@@ -3,6 +3,8 @@ package miniJava.ContextualAnalysis;
 import miniJava.AbstractSyntaxTrees.Package;
 import miniJava.AbstractSyntaxTrees.*;
 import miniJava.ErrorReporter;
+import miniJava.SyntacticAnalyzer.Token;
+import miniJava.SyntacticAnalyzer.TokenType;
 
 import javax.management.RuntimeErrorException;
 import java.util.List;
@@ -245,6 +247,7 @@ public class Identification implements Visitor<Object, Object> {
         MethodDecl md = (MethodDecl) arg;
         if (((MethodDecl) arg).isStatic) _errors.reportError("static method using this keyword");
         ref.decl = md.insideClass;
+        ref.decl.type = new ClassType(new Identifier(new Token(TokenType.CLASS, ((MethodDecl)arg).insideClass.name)), null);
         return null;
     }
 
