@@ -51,7 +51,7 @@ public class Compiler {
                     CodeGenerator cg = new CodeGenerator(errors);
                     cg.parse(p);
                     if (errors.hasErrors()) errors.outputErrors();
-                    else System.out.println("making a.out");
+                    //else System.out.println("making a.out");
                 }
             }
         } catch (FileNotFoundException e) {
