@@ -225,7 +225,13 @@ public class CodeGenerator implements Visitor<Object, Object> {
 				}
 			if (((QualRef)stmt.methodRef).id.spelling.equals("println")) {
 				//System.out.println("asdasdasdasda");
-				_asm.add(new Pop(Reg64.R15));
+				if (stmt.argList.get(0) instanceof BinaryExpr) {
+					((MethodDecl) arg).locals++;
+					_asm.add(new Mov_rmr(new R(Reg64.RBP, -8 * ((MethodDecl) arg).locals, Reg64.RAX)));
+					_asm.add(new Lea(new R(Reg64.RBP, -8 * ((MethodDecl) arg).locals, Reg64.R15)));
+				} else {
+					_asm.add(new Pop(Reg64.R15));
+				}
 				_asm.add(new Call(_asm.getSize(), printlnAddr));
 			}
 			else if (((MethodDecl)((QualRef) stmt.methodRef).id.decl).instructionAddr == -1) {
@@ -326,7 +332,7 @@ public class CodeGenerator implements Visitor<Object, Object> {
                 _asm.add(new Push(Reg64.RAX));
                 break;
             case "*":
-                _asm.add(new Imul(new R(Reg64.RAX, Reg64.RCX)));
+                _asm.add(new Imul(Reg64.RAX, new R(Reg64.RCX, true)));
                 _asm.add(new Push(Reg64.RAX));
                 break;
             case "/":
