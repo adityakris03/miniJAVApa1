@@ -171,9 +171,9 @@ public class CodeGenerator implements Visitor<Object, Object> {
 
 	@Override
 	public Object visitBlockStmt(BlockStmt stmt, Object arg) {
-		_asm.add(new Mov_rrm(new R(Reg64.R15, Reg64.RBP)));
+		_asm.add(new Mov_rmr(new R(Reg64.R15, Reg64.RBP)));
 		stmt.sl.forEach(s -> s.visit(this, arg));
-		_asm.add(new Mov_rrm(new R(Reg64.RBP, Reg64.R15)));
+		_asm.add(new Mov_rmr(new R(Reg64.RBP, Reg64.R15)));
 
 		return null;
 	}
@@ -270,30 +270,33 @@ public class CodeGenerator implements Visitor<Object, Object> {
 	public Object visitIfStmt(IfStmt stmt, Object arg) {
 		stmt.cond.visit(this, null);
 		_asm.add(new Pop(Reg64.RAX));
-		_asm.add(new Cmp(new R(Reg64.RAX, false), 0));
+		_asm.add(new Cmp(new R(Reg64.RAX, true), 0));
 		int currAddr = _asm.getSize();
 		int toPatch = _asm.add(new CondJmp(Condition.E, 0));
 		stmt.thenStmt.visit(this, null);
-
+		int currAddrJmp = _asm.getSize();
 		if (stmt.elseStmt != null) {
-			int currAddrJmp = _asm.getSize();
 			int toPatchJump = _asm.add(new Jmp(0));
+			int elseJmpAddr = _asm.getSize();
 			stmt.elseStmt.visit(this, null);
 			_asm.patch(toPatchJump, new Jmp(currAddrJmp, _asm.getSize(), false));
+			currAddrJmp = elseJmpAddr;
 		}
-		_asm.patch(toPatch, new CondJmp(Condition.E, currAddr, _asm.getSize(), false));
+		_asm.patch(toPatch, new CondJmp(Condition.E, currAddr, currAddrJmp, false));
 
 		return null;
 	}
 
 	@Override
 	public Object visitWhileStmt(WhileStmt stmt, Object arg) {
+		int currAddr = _asm.getSize();
 		stmt.cond.visit(this, null);
 		_asm.add(new Pop(Reg64.RAX));
-		int currAddr = _asm.getSize();
-		int toPatch = _asm.add(new Cmp(new R(Reg64.RAX, false), 0));
+		int patchAddr = _asm.getSize();
+		int toPatch = _asm.add(new CondJmp(Condition.E, 0));
 		stmt.body.visit(this, null);
-		_asm.patch(toPatch, new CondJmp(Condition.E, currAddr, _asm.getSize(), false));
+		_asm.add(new Jmp(_asm.getSize(), currAddr, false));
+		_asm.patch(toPatch, new CondJmp(Condition.E, patchAddr, _asm.getSize(), false));
 		return null;
 	}
 
@@ -304,10 +307,10 @@ public class CodeGenerator implements Visitor<Object, Object> {
 		_asm.add(new Pop(Reg64.RAX));
 		switch (op.spelling) {
 			case "!":
-				_asm.add(new Not(new R(Reg64.RAX, false)));
+				_asm.add(new Not(new R(Reg64.RAX, true)));
 				break;
 			case "-":
-				_asm.add(new Neg(new R(Reg64.RAX, false)));
+				_asm.add(new Neg(new R(Reg64.RAX, true)));
 				break;
 		}
 		_asm.add(new Push(Reg64.RAX));
@@ -348,7 +351,7 @@ public class CodeGenerator implements Visitor<Object, Object> {
                 _asm.add(new Push(Reg64.RAX));
                 break;
             default:
-                _asm.add(new Xor(new R(Reg64.RBX, Reg64.RBX)));
+                _asm.add(new Xor(new R(Reg64.RDX, Reg64.RDX)));
 
                 _asm.add(new Cmp(new R(Reg64.RAX, Reg64.RCX)));
                 _asm.add(new SetCond(Condition.getCond(op), Reg8.DL));
