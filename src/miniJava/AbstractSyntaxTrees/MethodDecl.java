@@ -15,7 +15,7 @@ public class MethodDecl extends MemberDecl {
     public ClassDecl insideClass;
     public int instructionAddr = -1;
     public int args = 0;
-    public int stackSize = 0;
+    public int locals = 0;
     public MethodDecl(MemberDecl md, ParameterDeclList pl, StatementList sl, SourcePosition posn) {
         super(md, posn);
         parameterDeclList = pl;

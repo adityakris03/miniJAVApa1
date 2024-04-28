@@ -15,13 +15,14 @@ public class CodeGenerator implements Visitor<Object, Object> {
 	private int offset = -8;
 	private Map<String, List<Instruction>> patch = new HashMap<>();
 	private int mainAddr = -1;
+	private int printlnAddr;
 	public CodeGenerator(ErrorReporter errors) {
 		this._errors = errors;
 	}
 	
 	public void parse(Package prog) {
 		_asm = new InstructionList();
-		
+		//_asm.markOutputStart();
 		// If you haven't refactored the name "ModRMSIB" to something like "R",
 		//  go ahead and do that now. You'll be needing that object a lot.
 		// Here is some example code.
@@ -67,7 +68,7 @@ public class CodeGenerator implements Visitor<Object, Object> {
 		
 		prog.visit(this,null);
 		if (mainAddr == -1) _errors.reportError("No main method");
-		
+		//_asm.outputFromMark();
 		// Output the file "a.out" if no errors
 		if( !_errors.hasErrors() )
 			makeElf("a.out");
@@ -76,6 +77,7 @@ public class CodeGenerator implements Visitor<Object, Object> {
 	@Override
 	public Object visitPackage(Package prog, Object arg) {
 		// TODO: visit relevant parts of our AST
+		printlnAddr = makePrintln();
 		prog.classDeclList.forEach(cd -> cd.visit(this, null));
 		return null;
 	}
@@ -101,10 +103,6 @@ public class CodeGenerator implements Visitor<Object, Object> {
 
 	@Override
 	public Object visitMethodDecl(MethodDecl md, Object arg) {
-		if (md.name.equals("println") && md.insideClass.name.equals("_PrintStream")) {
-			makePrintln();
-			return null;
-		}
 		md.instructionAddr = _asm.getSize();
 		_asm.add(new Push(Reg64.RBP));
 		_asm.add(new Mov_rmr(new R(Reg64.RBP, Reg64.RSP)));
@@ -117,9 +115,12 @@ public class CodeGenerator implements Visitor<Object, Object> {
 				md.parameterDeclList.get(0).type instanceof ArrayType &&
 				((ArrayType)md.parameterDeclList.get(0).type).eltType.typeKind == TypeKind.UNSUPPORTED /*&&
 				((ClassType)((ArrayType)md.parameterDeclList.get(0).type).eltType).className.spelling.equals("String")*/;
-		if (isMain) mainAddr = md.instructionAddr;
+		if (isMain) {
+			if (mainAddr == -1)
+				mainAddr = md.instructionAddr;
+			else _errors.reportError("more than one main method");
+		}
 		md.parameterDeclList.forEach(pd -> pd.visit(this, md));
-		md.stackSize = md.args;
 		md.statementList.forEach(s -> s.visit(this, md));
 		if (md.type.typeKind != TypeKind.VOID && (md.statementList.get(md.statementList.size()-1) instanceof ReturnStmt)) _errors.reportError("No return statement for non void method.");
 		if (patch.containsKey(md.name)) {
@@ -131,7 +132,7 @@ public class CodeGenerator implements Visitor<Object, Object> {
 		if (!isMain)
 			_asm.add(new Ret());
 		else {
-			_asm.add(new Mov_ri64(Reg64.RAX, 60));
+			_asm.add(new Mov_rmi(new R(Reg64.RAX, true), 60));
 			_asm.add(new Xor(new R(Reg64.RDI, Reg64.RDI)));
 			_asm.add(new Syscall());
 		}
@@ -147,10 +148,9 @@ public class CodeGenerator implements Visitor<Object, Object> {
 
 	@Override
 	public Object visitVarDecl(VarDecl decl, Object arg) {
-		decl.offset = offset;
-		_asm.add(new Push(0));
-		offset -= 8;
-		((MethodDecl) arg).stackSize++;
+		((MethodDecl)arg).locals++;
+		decl.offset = ((MethodDecl)arg).locals * -8;
+		_asm.add(new Push(1));
 		return null;
 	}
 
@@ -171,11 +171,9 @@ public class CodeGenerator implements Visitor<Object, Object> {
 
 	@Override
 	public Object visitBlockStmt(BlockStmt stmt, Object arg) {
-		int og = ((MethodDecl) arg).stackSize;
+		_asm.add(new Mov_rrm(new R(Reg64.R15, Reg64.RBP)));
 		stmt.sl.forEach(s -> s.visit(this, arg));
-		int local = ((MethodDecl)arg).stackSize - og;
-		for (int i = local; i > 0; i--)
-			_asm.add(new Pop((Reg64) Reg64.RegFromIdx(i, true)));
+		_asm.add(new Mov_rrm(new R(Reg64.RBP, Reg64.R15)));
 
 		return null;
 	}
@@ -183,15 +181,16 @@ public class CodeGenerator implements Visitor<Object, Object> {
 	@Override
 	public Object visitVardeclStmt(VarDeclStmt stmt, Object arg) {
 		stmt.varDecl.visit(this, arg);
-		stmt.initExp.visit(this, null);
+		stmt.initExp.visit(this, Boolean.TRUE);
 		_asm.add(new Pop(Reg64.RAX));
+		//System.out.println(stmt.varDecl.offset);
 		_asm.add(new Mov_rmr(new R(Reg64.RBP, stmt.varDecl.offset, Reg64.RAX)));
 		return null;
 	}
 
 	@Override
 	public Object visitAssignStmt(AssignStmt stmt, Object arg) {
-		stmt.ref.visit(this, true);
+		stmt.ref.visit(this, Boolean.TRUE);
 		stmt.val.visit(this, null);
 		_asm.add(new Pop(Reg64.RCX));
 		_asm.add(new Pop(Reg64.RAX));
@@ -216,11 +215,20 @@ public class CodeGenerator implements Visitor<Object, Object> {
 
 	@Override
 	public Object visitCallStmt(CallStmt stmt, Object arg) {
-		for (int i = stmt.argList.size() - 1; i > 0; i--) stmt.argList.get(i).visit(this, null);
+		for (int i = stmt.argList.size() - 1; i >= 0; i--) {
+			//System.out.println(i+1000);
+			stmt.argList.get(i).visit(this, Boolean.TRUE);
+		}
 		if (stmt.methodRef instanceof QualRef) {
-			if (!((MethodDecl)stmt.methodRef.decl).isStatic)
-				((QualRef) stmt.methodRef).ref.visit(this, true);
-			if (((MethodDecl)((QualRef) stmt.methodRef).id.decl).instructionAddr == -1) {
+			if (!((MethodDecl)stmt.methodRef.decl).isStatic) {
+				((QualRef) stmt.methodRef).ref.visit(this, Boolean.TRUE);
+				}
+			if (((QualRef)stmt.methodRef).id.spelling.equals("println")) {
+				//System.out.println("asdasdasdasda");
+				_asm.add(new Pop(Reg64.R15));
+				_asm.add(new Call(_asm.getSize(), printlnAddr));
+			}
+			else if (((MethodDecl)((QualRef) stmt.methodRef).id.decl).instructionAddr == -1) {
 				Call jmp = new Call(0);
 				_asm.add(jmp);
 				Object s = patch.containsKey(((QualRef) stmt.methodRef).id.spelling) ?
@@ -232,7 +240,7 @@ public class CodeGenerator implements Visitor<Object, Object> {
 			}
 		} else {
 			if (!((MethodDecl)stmt.methodRef.decl).isStatic)
-				(stmt.methodRef).visit(this, true);
+				(stmt.methodRef).visit(this, Boolean.TRUE);
 			if (((MethodDecl)(stmt.methodRef).decl).instructionAddr == -1) {
 				Call jmp = new Call(0);
 				_asm.add(jmp);
@@ -347,7 +355,7 @@ public class CodeGenerator implements Visitor<Object, Object> {
 
 	@Override
 	public Object visitRefExpr(RefExpr expr, Object arg) {
-		expr.ref.visit(this, null);
+		expr.ref.visit(this, arg);
 		return null;
 	}
 
@@ -367,8 +375,10 @@ public class CodeGenerator implements Visitor<Object, Object> {
 		for (int i = expr.argList.size() - 1; i > 0; i--) expr.argList.get(i).visit(this, null);
 		if (expr.functionRef instanceof QualRef) {
 			if (!((MethodDecl)expr.functionRef.decl).isStatic)
-				((QualRef) expr.functionRef).ref.visit(this, true);
-			if (((MethodDecl)((QualRef) expr.functionRef).id.decl).instructionAddr == -1) {
+				((QualRef) expr.functionRef).ref.visit(this, Boolean.TRUE);
+			if (((QualRef)expr.functionRef).id.spelling.equals("println"))
+				_asm.add(new Call(_asm.getSize(), printlnAddr));
+			else if (((MethodDecl)((QualRef) expr.functionRef).id.decl).instructionAddr == -1) {
 				Call jmp = new Call(0);
 				_asm.add(jmp);
 				Object s = patch.containsKey(((QualRef) expr.functionRef).id.spelling) ?
@@ -380,7 +390,7 @@ public class CodeGenerator implements Visitor<Object, Object> {
 			}
 		} else {
 			if (!((MethodDecl)expr.functionRef.decl).isStatic)
-				(expr.functionRef).visit(this, true);
+				(expr.functionRef).visit(this, Boolean.TRUE);
 			if (((MethodDecl)(expr.functionRef).decl).instructionAddr == -1) {
 				Call jmp = new Call(0);
 				_asm.add(jmp);
@@ -425,9 +435,13 @@ public class CodeGenerator implements Visitor<Object, Object> {
 
 	@Override
 	public Object visitIdRef(IdRef ref, Object arg) {
-		if(ref.id.decl instanceof LocalDecl) {
-			LocalDecl ld = (LocalDecl) ref.id.decl;
+		//System.out.print(ref.decl.getClass() + " and ");
+		//System.out.println(arg);
+		if(ref.decl instanceof LocalDecl) {
+			//System.out.println(1);
+			LocalDecl ld = (LocalDecl) ref.decl;
 			if(arg instanceof Boolean) {
+				//System.out.println(2);
 				_asm.add(new Lea(new R(Reg64.RBP, ld.offset, Reg64.RAX)));
 				_asm.add(new Push(Reg64.RAX));
 			} else {
@@ -448,9 +462,9 @@ public class CodeGenerator implements Visitor<Object, Object> {
 
 	@Override
 	public Object visitQRef(QualRef ref, Object arg) {
-		ref.ref.visit(this, true);
+		ref.ref.visit(this, Boolean.TRUE);
 		_asm.add(new Pop(Reg64.RAX));
-		_asm.add(new Add(new R(Reg64.RAX, false), ((FieldDecl)ref.id.decl).offset));
+		_asm.add(new Add(new R(Reg64.RAX, true), ((FieldDecl)ref.id.decl).offset));
 		_asm.add(new Push(Reg64.RAX));
 		return null;
 	}
@@ -506,11 +520,16 @@ public class CodeGenerator implements Visitor<Object, Object> {
 	
 	private int makePrintln() {
 		// TODO: how can we generate the assembly to println?
-		_asm.add(new Mov_ri64(Reg64.RAX, 1));
-		_asm.add(new Mov_ri64(Reg64.RDI, 1));
-		_asm.add(new Mov_rrm(new R(Reg64.RSP, Reg64.RSI)));
-		_asm.add(new Mov_ri64(Reg64.RDX, 1));
-		return _asm.add(new Syscall());
+		int addr = _asm.add(new Mov_rmi(new R(Reg64.RAX, true), 1));
+		_asm.add(new Mov_rmi(new R(Reg64.RDI, true), 1));
+		_asm.add(new Mov_rrm(new R(Reg64.R15, Reg64.RSI)));
+		_asm.add(new Mov_rmi(new R(Reg64.RDX, true), 1));
+		_asm.add(new Syscall());
+		_asm.add(new Mov_rmi(new R(Reg64.R14, true), 10));
+		_asm.add(new Mov_rmr(new R(Reg64.R15, 0, Reg64.R14)));
+		_asm.add(new Syscall());
+		_asm.add(new Ret());
+		return addr;
 	}
 
 }
