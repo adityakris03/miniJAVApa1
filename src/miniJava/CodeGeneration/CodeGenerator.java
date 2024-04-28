@@ -12,7 +12,6 @@ public class CodeGenerator implements Visitor<Object, Object> {
 	private ErrorReporter _errors;
 	private InstructionList _asm; // our list of instructions that are used to make the code section
 	private int staticVars = 0;
-	private int offset = -8;
 	private Map<String, List<Instruction>> patch = new HashMap<>();
 	private int mainAddr = -1;
 	private int printlnAddr;
@@ -78,13 +77,13 @@ public class CodeGenerator implements Visitor<Object, Object> {
 	public Object visitPackage(Package prog, Object arg) {
 		// TODO: visit relevant parts of our AST
 		printlnAddr = makePrintln();
+		prog.classDeclList.forEach(cd -> cd.fieldDeclList.forEach(fd -> fd.visit(this, cd)));
 		prog.classDeclList.forEach(cd -> cd.visit(this, null));
 		return null;
 	}
 
 	@Override
 	public Object visitClassDecl(ClassDecl cd, Object arg) {
-		cd.fieldDeclList.forEach(fd -> fd.visit(this, cd));
 		cd.methodDeclList.forEach(md -> md.visit(this, cd));
 		return null;
 	}
@@ -263,6 +262,7 @@ public class CodeGenerator implements Visitor<Object, Object> {
 
 	@Override
 	public Object visitReturnStmt(ReturnStmt stmt, Object arg) {
+		stmt.returnExpr.visit(this, null);
 		return null;
 	}
 
@@ -273,12 +273,12 @@ public class CodeGenerator implements Visitor<Object, Object> {
 		_asm.add(new Cmp(new R(Reg64.RAX, true), 0));
 		int currAddr = _asm.getSize();
 		int toPatch = _asm.add(new CondJmp(Condition.E, 0));
-		stmt.thenStmt.visit(this, null);
+		stmt.thenStmt.visit(this, arg);
 		int currAddrJmp = _asm.getSize();
 		if (stmt.elseStmt != null) {
 			int toPatchJump = _asm.add(new Jmp(0));
 			int elseJmpAddr = _asm.getSize();
-			stmt.elseStmt.visit(this, null);
+			stmt.elseStmt.visit(this, arg);
 			_asm.patch(toPatchJump, new Jmp(currAddrJmp, _asm.getSize(), false));
 			currAddrJmp = elseJmpAddr;
 		}
@@ -431,7 +431,6 @@ public class CodeGenerator implements Visitor<Object, Object> {
 	public Object visitNewArrayExpr(NewArrayExpr expr, Object arg) {
 		_asm.add(new Push(0));
 		makeMalloc();
-		_asm.add(new Mov_rmr(new R(Reg64.RBP, -8, Reg64.RAX)));
 		return null;
 	}
 
@@ -471,10 +470,13 @@ public class CodeGenerator implements Visitor<Object, Object> {
 	@Override
 	public Object visitQRef(QualRef ref, Object arg) {
 		ref.ref.visit(this, arg);
-		System.out.println(arg);
-		System.out.println(ref.id.spelling);
 		_asm.add(new Pop(Reg64.RAX));
-		_asm.add(new Add(new R(Reg64.RAX, true), ((FieldDecl)ref.id.decl).offset));
+		System.out.println(ref.id.spelling + " " + ((FieldDecl)ref.id.decl).offset);
+		if (ref.ref instanceof QualRef) {
+			_asm.add(new Mov_rrm(new R(Reg64.RAX, 0, Reg64.RAX)));
+		} else {
+			_asm.add(new Add(new R(Reg64.RAX, true), ((FieldDecl) ref.id.decl).offset));
+		}
 		_asm.add(new Push(Reg64.RAX));
 		return null;
 	}
