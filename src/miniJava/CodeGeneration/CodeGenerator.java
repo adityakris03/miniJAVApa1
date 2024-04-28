@@ -22,7 +22,7 @@ public class CodeGenerator implements Visitor<Object, Object> {
 	
 	public void parse(Package prog) {
 		_asm = new InstructionList();
-		//_asm.markOutputStart();
+		_asm.markOutputStart();
 		// If you haven't refactored the name "ModRMSIB" to something like "R",
 		//  go ahead and do that now. You'll be needing that object a lot.
 		// Here is some example code.
@@ -68,7 +68,7 @@ public class CodeGenerator implements Visitor<Object, Object> {
 		
 		prog.visit(this,null);
 		if (mainAddr == -1) _errors.reportError("No main method");
-		//_asm.outputFromMark();
+		_asm.outputFromMark();
 		// Output the file "a.out" if no errors
 		if( !_errors.hasErrors() )
 			makeElf("a.out");
@@ -122,7 +122,7 @@ public class CodeGenerator implements Visitor<Object, Object> {
 		}
 		md.parameterDeclList.forEach(pd -> pd.visit(this, md));
 		md.statementList.forEach(s -> s.visit(this, md));
-		if (md.type.typeKind != TypeKind.VOID && (md.statementList.get(md.statementList.size()-1) instanceof ReturnStmt)) _errors.reportError("No return statement for non void method.");
+		if (md.type.typeKind != TypeKind.VOID && !(md.statementList.get(md.statementList.size()-1) instanceof ReturnStmt)) _errors.reportError("No return statement for non void method.");
 		if (patch.containsKey(md.name)) {
 			patch.get(md.name).forEach(instruction -> _asm.patch(instruction.listIdx, new Call(instruction.startAddress, md.instructionAddr)));
 			patch.remove(md.name);
@@ -422,9 +422,8 @@ public class CodeGenerator implements Visitor<Object, Object> {
 
 	@Override
 	public Object visitNewObjectExpr(NewObjectExpr expr, Object arg) {
-		_asm.add(new Push(0));
 		makeMalloc();
-		_asm.add(new Mov_rmr(new R(Reg64.RBP, -8, Reg64.RAX)));
+		_asm.add(new Push(Reg64.RAX));
 		return null;
 	}
 
@@ -471,7 +470,9 @@ public class CodeGenerator implements Visitor<Object, Object> {
 
 	@Override
 	public Object visitQRef(QualRef ref, Object arg) {
-		ref.ref.visit(this, Boolean.TRUE);
+		ref.ref.visit(this, arg);
+		System.out.println(arg);
+		System.out.println(ref.id.spelling);
 		_asm.add(new Pop(Reg64.RAX));
 		_asm.add(new Add(new R(Reg64.RAX, true), ((FieldDecl)ref.id.decl).offset));
 		_asm.add(new Push(Reg64.RAX));
