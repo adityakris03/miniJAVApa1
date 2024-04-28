@@ -525,9 +525,9 @@ public class CodeGenerator implements Visitor<Object, Object> {
 		_asm.add(new Mov_rrm(new R(Reg64.R15, Reg64.RSI)));
 		_asm.add(new Mov_rmi(new R(Reg64.RDX, true), 1));
 		_asm.add(new Syscall());
-		_asm.add(new Mov_rmi(new R(Reg64.R14, true), 10));
-		_asm.add(new Mov_rmr(new R(Reg64.R15, 0, Reg64.R14)));
-		_asm.add(new Syscall());
+//		_asm.add(new Mov_rmi(new R(Reg64.R14, true), 10));
+//		_asm.add(new Mov_rmr(new R(Reg64.R15, 0, Reg64.R14)));
+//		_asm.add(new Syscall());
 		_asm.add(new Ret());
 		return addr;
 	}
